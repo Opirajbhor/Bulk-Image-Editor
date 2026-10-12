@@ -2,7 +2,7 @@
 
 A fully client-side web app that removes backgrounds, auto-frames passport photos, resizes to a target file size, and exports in JPEG / PNG / WebP — all without uploading a single byte to a server.
 
-[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://opirajbhor.github.io/)
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)]([https://opirajbhor.github.io/](https://opirajbhor.github.io/Bulk-Image-Editor/))
 [![Made with](https://img.shields.io/badge/made%20with-HTML%20%2B%20Tailwind-38bdf8)](https://tailwindcss.com/)
 [![AI](https://img.shields.io/badge/AI-in--browser-8b5cf6)](#-how-it-works)
 [![Privacy](https://img.shields.io/badge/100%25-local-yes-success)](#-privacy)
