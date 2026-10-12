@@ -1,32 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bulk Image Processor</title>
+<title>ReadyChobi</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
+    darkMode: 'class',
     theme: {
       extend: {
         colors: {
           accent: { DEFAULT: '#3b82f6', hover: '#2563eb', soft: '#eff6ff' },
           ink:    { DEFAULT: '#0f172a', 2: '#334155', muted: '#64748b' },
           line:   { DEFAULT: '#e2e8f0', 2: '#cbd5e1' },
-          ok:     '#10b981',
-          warn:   '#f59e0b',
-          danger: '#ef4444',
-        },
-        fontFamily: {
-          sans: ['system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+          ok: '#10b981', warn: '#f59e0b', danger: '#ef4444',
         },
         keyframes: {
           pulse2: { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.35 } },
           spin2:  { to: { transform: 'rotate(360deg)' } },
+          slideDown: { from: { transform: 'translateY(-100%)', opacity: 0 }, to: { transform: 'translateY(0)', opacity: 1 } },
         },
         animation: {
           'pulse-soft': 'pulse2 1.2s ease-in-out infinite',
           'spin-fast':  'spin2 0.8s linear infinite',
+          'slide-down': 'slideDown 0.35s ease-out',
         },
       },
     },
@@ -43,13 +41,10 @@
     background-position: 0 0, 0 5px, 5px -5px, -5px 0;
     background-color: #fff;
   }
-  .checker-soft {
-    background-image: repeating-conic-gradient(#eef2f7 0 25%, #f8fafc 0 50%);
-    background-size: 16px 16px;
-  }
+  .checker-soft { background-image: repeating-conic-gradient(#eef2f7 0 25%, #f8fafc 0 50%); background-size: 16px 16px; }
+  .dark .checker-soft { background-image: repeating-conic-gradient(#1e293b 0 25%, #0f172a 0 50%); }
   .thirds::before {
-    content: '';
-    position: absolute; inset: 0; pointer-events: none;
+    content: ''; position: absolute; inset: 0; pointer-events: none;
     background:
       linear-gradient(to right, rgba(255,255,255,.35) 1px, transparent 1px) 33.33% 0 / 33.33% 100% no-repeat,
       linear-gradient(to right, rgba(255,255,255,.35) 1px, transparent 1px) 66.66% 0 / 33.33% 100% no-repeat,
@@ -58,10 +53,9 @@
   }
   .scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
   .scroll-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  .dark .scroll-thin::-webkit-scrollbar-thumb { background: #475569; }
   .scroll-thin::-webkit-scrollbar-track { background: transparent; }
-  input[type="color"] {
-    -webkit-appearance: none; border: none; padding: 0; background: none; cursor: pointer;
-  }
+  input[type="color"] { -webkit-appearance: none; border: none; padding: 0; background: none; cursor: pointer; }
   input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
   input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
   .badge {
@@ -69,93 +63,136 @@
     font-size: 0.6rem; font-weight: 800; text-transform: uppercase;
     letter-spacing: 0.05em; z-index: 3; color: #fff;
   }
-  .badge.pending  { top: 0.5rem; left: 0.5rem;  background: rgba(148,163,184,.95); }
-  .badge.done     { top: 0.5rem; left: 0.5rem;  background: rgba(16,185,129,.95); }
-  .badge.error    { top: 0.5rem; left: 0.5rem;  background: rgba(239,68,68,.95); }
+  .badge.pending  { top: 0.5rem; left: 0.5rem; background: rgba(148,163,184,.95); }
+  .badge.done     { top: 0.5rem; left: 0.5rem; background: rgba(16,185,129,.95); }
+  .badge.error    { top: 0.5rem; left: 0.5rem; background: rgba(239,68,68,.95); }
   .badge.focus    { bottom: 0.5rem; left: 0.5rem; top: auto; background: rgba(139,92,246,.95); }
   .badge.manual   { top: 0.5rem; right: 0.5rem; left: auto; background: rgba(59,130,246,.95); }
   .swatch.active { border-color: #3b82f6; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #3b82f6; }
+  .dark .swatch.active { box-shadow: 0 0 0 2px #0f172a, 0 0 0 4px #3b82f6; }
+
+  #aiOverlay { animation: slideDown .35s ease-out; }
+
+  @keyframes aiPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,.5); }
+    50%      { box-shadow: 0 0 0 10px rgba(59,130,246,0); }
+  }
+  .ai-pulse { animation: aiPulse 2s ease-out infinite; }
 </style>
 </head>
-<body class="min-h-screen lg:h-screen lg:overflow-hidden bg-slate-100 text-ink font-sans antialiased flex flex-col">
+<body class="min-h-screen lg:h-screen lg:overflow-hidden bg-slate-100 dark:bg-slate-950 text-ink dark:text-slate-100 antialiased flex flex-col">
 
-<!-- ===================== HEADER ===================== -->
-<header class="h-[60px] shrink-0 bg-white border-b border-line flex items-center gap-4 px-6 z-10">
+<div id="aiOverlay" class="fixed top-0 left-0 right-0 z-[300] hidden justify-center pt-4 px-4 pointer-events-none">
+  <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-line dark:border-slate-800 px-5 py-4 w-full max-w-sm">
+    <div class="flex items-center gap-3 mb-3">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-accent to-violet-500 flex items-center justify-center shrink-0 ai-pulse">
+        <div class="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin-fast"></div>
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-bold text-ink dark:text-slate-100" id="aiOverlayTitle">Downloading AI model</div>
+        <div class="text-[0.7rem] text-ink-muted dark:text-slate-400" id="aiOverlaySubtitle">RMBG-1.4 · first-time setup only</div>
+      </div>
+      <div class="text-xl font-extrabold tabular-nums text-accent shrink-0" id="aiOverlayPct">0%</div>
+    </div>
+    <div class="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+      <div id="aiOverlayBar" class="h-full w-0 bg-gradient-to-r from-accent to-violet-500 rounded-full transition-[width] duration-300"></div>
+    </div>
+    <div class="text-[0.68rem] text-ink-muted dark:text-slate-400 mt-2.5 leading-snug" id="aiOverlayNote">
+      The model is cached after download — you'll only see this once.
+    </div>
+  </div>
+</div>
+
+<header class="h-[60px] shrink-0 bg-white dark:bg-slate-900 border-b border-line dark:border-slate-800 flex items-center gap-2 px-4 md:px-6 z-10">
   <div class="flex items-center gap-2.5 font-bold text-[1.05rem]">
-    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-violet-500 flex items-center justify-center text-white text-sm font-extrabold">B</div>
-    <span>Bulk Image Processor</span>
+    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-violet-500 flex items-center justify-center text-white text-sm font-extrabold">R</div>
+    <span class="hidden sm:inline">ReadyChobi</span>
   </div>
   <div class="flex-1"></div>
-  <div class="hidden md:block text-xs text-ink-muted">All processing happens in your browser</div>
+  <div class="hidden lg:block text-xs text-ink-muted dark:text-slate-400" data-i18n="tagline">100% local · no uploads</div>
 
-  <div id="modelPill" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 border border-line text-xs text-ink-2 transition-colors">
+  <button id="langToggle" title="Language" class="px-3 h-9 rounded-full bg-slate-50 dark:bg-slate-800 border border-line dark:border-slate-700 text-xs font-bold text-ink-2 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+    <span id="langLabel">বাং</span>
+  </button>
+
+  <button id="themeToggle" title="Theme" class="w-9 h-9 rounded-full bg-slate-50 dark:bg-slate-800 border border-line dark:border-slate-700 flex items-center justify-center cursor-pointer text-ink-2 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+    <svg id="themeIconSun" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    <svg id="themeIconMoon" class="w-4 h-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  </button>
+
+  <div id="modelPill" class="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800 border border-line dark:border-slate-700 text-xs text-ink-2 dark:text-slate-300 transition-colors">
     <span id="modelDot" class="w-2 h-2 rounded-full bg-slate-400"></span>
     <span id="modelPillText">AI not loaded</span>
   </div>
 
-  <a href="https://github.com/Opirajbhor" target="_blank" rel="noopener" title="Visit my GitHub profile"
-     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-ink text-white text-xs font-semibold no-underline shadow-sm transition-all hover:bg-slate-800 hover:-translate-y-px hover:shadow-md active:translate-y-0 max-[640px]:px-2.5">
-    <svg viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 shrink-0">
-      <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.55v-1.93c-3.2.7-3.87-1.54-3.87-1.54-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.68 0-1.25.45-2.28 1.19-3.08-.12-.29-.52-1.47.11-3.06 0 0 .97-.31 3.18 1.18a11.1 11.1 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.77.11 3.06.74.8 1.19 1.83 1.19 3.08 0 4.41-2.69 5.39-5.25 5.67.41.35.78 1.05.78 2.12v3.14c0 .31.21.66.8.55C20.22 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/>
-    </svg>
-    <span class="max-[640px]:hidden">Opirajbhor</span>
+  <a href="https://github.com/Opirajbhor" target="_blank" rel="noopener" title="GitHub — Opirajbhor"
+     class="inline-flex items-center gap-2 pl-0.5 pr-3 py-0.5 rounded-full bg-ink dark:bg-slate-100 text-white dark:text-ink text-xs font-semibold no-underline hover:bg-slate-800 dark:hover:bg-white transition-all">
+    <img src="https://github.com/Opirajbhor.png?size=64"
+         alt="Opirajbhor"
+         class="w-7 h-7 rounded-full object-cover ring-2 ring-white/20 dark:ring-ink/20"
+         onerror="this.style.display='none'">
+    <span class="hidden md:inline">Opirajbhor</span>
   </a>
 </header>
 
-<!-- ===================== BODY: MAIN LEFT + SIDEBAR RIGHT ===================== -->
 <div class="flex-1 flex flex-col lg:flex-row lg:overflow-hidden min-h-0">
-
-  <!-- ===== MAIN (LEFT) ===== -->
   <main class="flex-1 min-w-0 lg:overflow-y-auto p-6 scroll-thin">
-
-    <!-- Dropzone -->
-    <div id="dropZone" class="bg-white border-2 border-dashed border-line-2 rounded-xl p-8 text-center cursor-pointer transition-all mb-5 hover:border-accent hover:bg-blue-50/40">
-      <h3 class="text-base font-semibold mb-1">Drop images here</h3>
-      <p class="text-xs text-ink-muted">or click to browse — PNG, JPG, WebP, BMP</p>
+    <!-- DROP AREA — increased 1.5× -->
+    <div id="dropZone" class="bg-white dark:bg-slate-900 border-2 border-dashed border-line-2 dark:border-slate-700 rounded-xl p-12 text-center cursor-pointer transition-all mb-6 hover:border-accent hover:bg-blue-50/40 dark:hover:bg-slate-800">
+      <h3 class="text-lg font-semibold mb-1.5" data-i18n="dropTitle">Drop images here</h3>
+      <p class="text-sm text-ink-muted dark:text-slate-400" data-i18n="dropHint">or click to browse — or paste with Ctrl+V</p>
     </div>
     <input type="file" id="fileInput" accept="image/*" multiple class="absolute w-px h-px opacity-0 pointer-events-none">
 
-    <!-- Section head -->
     <div class="flex items-center justify-between mb-3">
-      <h2 class="text-xs font-semibold text-ink-2 uppercase tracking-wider">Library</h2>
+      <h2 class="text-xs font-semibold text-ink-2 dark:text-slate-300 uppercase tracking-wider" data-i18n="library">Library</h2>
       <div class="flex items-center gap-2">
-        <span id="libCount" class="text-xs text-ink-muted bg-slate-50 px-2.5 py-0.5 rounded-full border border-line">0 images</span>
-        <button id="clearBtn" class="text-xs font-medium text-ink-muted px-2.5 py-1 rounded-lg border border-transparent transition-colors hover:bg-red-50 hover:text-danger hover:border-red-200">Clear</button>
+        <span id="libCount" class="text-xs text-ink-muted dark:text-slate-400 bg-slate-50 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-line dark:border-slate-700">0</span>
+        <button id="clearBtn" class="text-xs font-medium text-ink-muted dark:text-slate-400 px-2.5 py-1 rounded-lg border border-transparent transition-colors hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-danger hover:border-red-200 dark:hover:border-red-900" data-i18n="clear">Clear</button>
       </div>
     </div>
 
-    <!-- Library grid -->
     <div id="library" class="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3"></div>
   </main>
 
-  <!-- ===== SIDEBAR (RIGHT) ===== -->
-  <aside class="w-full lg:w-[360px] shrink-0 bg-white border-t lg:border-t-0 lg:border-l border-line lg:overflow-y-auto flex flex-col scroll-thin">
+  <aside class="w-full lg:w-[360px] shrink-0 bg-white dark:bg-slate-900 border-t lg:border-t-0 lg:border-l border-line dark:border-slate-800 lg:overflow-y-auto flex flex-col scroll-thin">
 
-    <!-- 1. Subject Focus -->
-    <div class="p-5 border-b border-line">
-      <h3 class="text-[0.72rem] font-bold text-ink-muted uppercase tracking-widest mb-3 flex items-center gap-2">
-        <span class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-accent-soft text-accent text-[0.68rem] font-extrabold">1</span>
-        Subject Focus
+    <div class="p-5 border-b border-line dark:border-slate-800">
+      <h3 class="text-[0.72rem] font-bold text-ink-muted dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+        <span class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-accent-soft dark:bg-blue-950 text-accent text-[0.68rem] font-extrabold">1</span>
+        <span data-i18n="sectionFocus">Subject Focus</span>
       </h3>
-      <label for="autoFocus" class="flex items-center gap-2.5 px-2.5 py-2 bg-slate-50 border border-line rounded-lg cursor-pointer select-none">
+      <label class="flex items-center gap-2.5 px-2.5 py-2 bg-slate-50 dark:bg-slate-800 border border-line dark:border-slate-700 rounded-lg cursor-pointer">
         <input type="checkbox" id="autoFocus" checked class="w-4 h-4 accent-accent cursor-pointer shrink-0">
         <div>
-          <span class="text-[0.82rem] font-medium text-ink block">Auto-focus subject</span>
-          <span class="block text-[0.7rem] text-ink-muted font-normal mt-0.5">Frames the head like a passport photo</span>
+          <span class="text-[0.82rem] font-medium text-ink dark:text-slate-100 block" data-i18n="autoFocus">Auto-focus subject</span>
+          <span class="block text-[0.7rem] text-ink-muted dark:text-slate-400 mt-0.5" data-i18n="autoFocusHint">Frames the head like a passport photo</span>
+        </div>
+      </label>
+      <label class="flex items-center gap-2.5 px-2.5 py-2 mt-2 bg-slate-50 dark:bg-slate-800 border border-line dark:border-slate-700 rounded-lg cursor-pointer">
+        <input type="checkbox" id="autoEnhance" class="w-4 h-4 accent-accent cursor-pointer shrink-0">
+        <div>
+          <span class="text-[0.82rem] font-medium text-ink dark:text-slate-100 block" data-i18n="autoEnhance">Auto-enhance</span>
+          <span class="block text-[0.7rem] text-ink-muted dark:text-slate-400 mt-0.5" data-i18n="autoEnhanceHint">Brightness + contrast boost</span>
+        </div>
+      </label>
+      <label class="flex items-center gap-2.5 px-2.5 py-2 mt-2 bg-slate-50 dark:bg-slate-800 border border-line dark:border-slate-700 rounded-lg cursor-pointer">
+        <input type="checkbox" id="trimEdges" checked class="w-4 h-4 accent-accent cursor-pointer shrink-0">
+        <div>
+          <span class="text-[0.82rem] font-medium text-ink dark:text-slate-100 block" data-i18n="trimEdges">Trim transparent edges</span>
+          <span class="block text-[0.7rem] text-ink-muted dark:text-slate-400 mt-0.5" data-i18n="trimEdgesHint">Removes empty margins around subject</span>
         </div>
       </label>
     </div>
 
-    <!-- 2. Crop -->
-    <div class="p-5 border-b border-line">
-      <h3 class="text-[0.72rem] font-bold text-ink-muted uppercase tracking-widest mb-3 flex items-center gap-2">
-        <span class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-accent-soft text-accent text-[0.68rem] font-extrabold">2</span>
-        Crop
+    <div class="p-5 border-b border-line dark:border-slate-800">
+      <h3 class="text-[0.72rem] font-bold text-ink-muted dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+        <span class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-accent-soft dark:bg-blue-950 text-accent text-[0.68rem] font-extrabold">2</span>
+        <span data-i18n="sectionCrop">Crop</span>
       </h3>
       <div class="mb-3">
-        <label class="block text-[0.78rem] font-semibold text-ink-2 mb-1.5">Preset</label>
-        <select id="cropPreset" class="w-full px-2.5 py-2 border border-line rounded-lg text-sm bg-white outline-none transition-all focus:border-accent focus:ring-[3px] focus:ring-accent/15 appearance-none bg-no-repeat bg-[right_0.7rem_center] pr-8"
-                style="background-image:url(&quot;data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E&quot;)">
+        <label class="block text-[0.78rem] font-semibold text-ink-2 dark:text-slate-300 mb-1.5" data-i18n="preset">Preset</label>
+        <select id="cropPreset" class="w-full px-2.5 py-2 border border-line dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-ink dark:text-slate-100 outline-none focus:border-accent">
           <option value="bd-passport" selected>Bangladesh Passport — 40×50 mm</option>
           <option value="bd-visa">Bangladesh Visa — 35×45 mm</option>
           <option value="us-passport">US Passport — 2×2 in</option>
@@ -163,143 +200,157 @@
           <option value="india-passport">India Passport — 35×35 mm</option>
           <option value="china-visa">China Visa — 33×48 mm</option>
           <option value="square">Square — 1:1</option>
-          <option value="none">No crop (original aspect)</option>
+          <option value="none">No crop</option>
           <option value="custom">Custom…</option>
         </select>
       </div>
       <div id="customCropGroup" class="hidden">
-        <label class="block text-[0.78rem] font-semibold text-ink-2 mb-1.5">Custom size (px)</label>
+        <label class="block text-[0.78rem] font-semibold text-ink-2 dark:text-slate-300 mb-1.5" data-i18n="customSize">Custom size (px)</label>
         <div class="grid grid-cols-2 gap-2">
-          <input type="number" id="customCropW" placeholder="Width" min="1" class="w-full px-2.5 py-2 border border-line rounded-lg text-sm bg-white outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15">
-          <input type="number" id="customCropH" placeholder="Height" min="1" class="w-full px-2.5 py-2 border border-line rounded-lg text-sm bg-white outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15">
+          <input type="number" id="customCropW" placeholder="Width" min="1" class="w-full px-2.5 py-2 border border-line dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 outline-none focus:border-accent">
+          <input type="number" id="customCropH" placeholder="Height" min="1" class="w-full px-2.5 py-2 border border-line dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 outline-none focus:border-accent">
         </div>
       </div>
     </div>
 
-    <!-- 3. Background Color (COMPACT) -->
-    <div class="p-5 border-b border-line">
-      <h3 class="text-[0.72rem] font-bold text-ink-muted uppercase tracking-widest mb-3 flex items-center gap-2">
-        <span class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-accent-soft text-accent text-[0.68rem] font-extrabold">3</span>
-        Background Color
+    <div class="p-5 border-b border-line dark:border-slate-800">
+      <h3 class="text-[0.72rem] font-bold text-ink-muted dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+        <span class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-accent-soft dark:bg-blue-950 text-accent text-[0.68rem] font-extrabold">3</span>
+        <span data-i18n="sectionBg">Background Color</span>
       </h3>
-
-      <!-- Compact inline: small swatch + hex -->
       <div class="flex items-center gap-2 mb-2.5">
-        <div id="colorPreview" class="relative w-8 h-8 rounded-md overflow-hidden border border-line-2 cursor-pointer shrink-0" style="background:#ACC0FB">
+        <div id="colorPreview" class="relative w-8 h-8 rounded-md overflow-hidden border border-line-2 dark:border-slate-700 cursor-pointer shrink-0" style="background:#ACC0FB">
           <input type="color" id="bgColor" value="#ACC0FB" class="absolute -inset-1 w-[calc(100%+8px)] h-[calc(100%+8px)] border-none p-0 bg-transparent cursor-pointer">
         </div>
-        <span id="colorHex" class="font-mono text-[0.75rem] text-ink-2 bg-slate-50 px-2 py-1 rounded border border-line">#ACC0FB</span>
+        <span id="colorHex" class="font-mono text-[0.75rem] text-ink-2 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded border border-line dark:border-slate-700">#ACC0FB</span>
       </div>
-
-      <!-- Small swatch row -->
       <div id="swatches" class="flex flex-wrap gap-1.5">
-        <div class="swatch active w-7 h-7 rounded-md border-2 border-transparent cursor-pointer transition-transform hover:scale-110 shadow-[inset_0_0_0_1px_rgba(15,23,42,.08)]" style="background:#ACC0FB" data-color="#ACC0FB" title="Passport Blue"></div>
-        <div class="swatch w-7 h-7 rounded-md border-2 border-transparent cursor-pointer transition-transform hover:scale-110 shadow-[inset_0_0_0_1px_rgba(15,23,42,.08)]" style="background:#ffffff" data-color="#ffffff" title="White"></div>
-        <div class="swatch w-7 h-7 rounded-md border-2 border-transparent cursor-pointer transition-transform hover:scale-110 shadow-[inset_0_0_0_1px_rgba(15,23,42,.08)]" style="background:#2563eb" data-color="#2563eb" title="Blue"></div>
-        <div class="swatch w-7 h-7 rounded-md border-2 border-transparent cursor-pointer transition-transform hover:scale-110 shadow-[inset_0_0_0_1px_rgba(15,23,42,.08)]" style="background:#dc2626" data-color="#dc2626" title="Red"></div>
-        <div class="swatch w-7 h-7 rounded-md border-2 border-transparent cursor-pointer transition-transform hover:scale-110 shadow-[inset_0_0_0_1px_rgba(15,23,42,.08)]" style="background:#16a34a" data-color="#16a34a" title="Green"></div>
-        <div class="swatch w-7 h-7 rounded-md border-2 border-transparent cursor-pointer transition-transform hover:scale-110 shadow-[inset_0_0_0_1px_rgba(15,23,42,.08)]" style="background:#f59e0b" data-color="#f59e0b" title="Amber"></div>
-        <div class="swatch w-7 h-7 rounded-md border-2 border-transparent cursor-pointer transition-transform hover:scale-110 shadow-[inset_0_0_0_1px_rgba(15,23,42,.08)]" style="background:#000000" data-color="#000000" title="Black"></div>
-        <div class="swatch transparent checker w-7 h-7 rounded-md border-2 border-dashed border-slate-400 cursor-pointer transition-transform hover:scale-110" data-color="transparent" title="Transparent"></div>
+        <div class="swatch active w-7 h-7 rounded-md border-2 border-transparent cursor-pointer transition-transform hover:scale-110" style="background:#ACC0FB" data-color="#ACC0FB"></div>
+        <div class="swatch w-7 h-7 rounded-md border-2 border-transparent cursor-pointer transition-transform hover:scale-110" style="background:#ffffff" data-color="#ffffff"></div>
+        <div class="swatch w-7 h-7 rounded-md border-2 border-transparent cursor-pointer transition-transform hover:scale-110" style="background:#2563eb" data-color="#2563eb"></div>
+        <div class="swatch w-7 h-7 rounded-md border-2 border-transparent cursor-pointer transition-transform hover:scale-110" style="background:#dc2626" data-color="#dc2626"></div>
+        <div class="swatch w-7 h-7 rounded-md border-2 border-transparent cursor-pointer transition-transform hover:scale-110" style="background:#16a34a" data-color="#16a34a"></div>
+        <div class="swatch w-7 h-7 rounded-md border-2 border-transparent cursor-pointer transition-transform hover:scale-110" style="background:#f59e0b" data-color="#f59e0b"></div>
+        <div class="swatch w-7 h-7 rounded-md border-2 border-transparent cursor-pointer transition-transform hover:scale-110" style="background:#000000" data-color="#000000"></div>
+        <div class="swatch transparent checker w-7 h-7 rounded-md border-2 border-dashed border-slate-400 cursor-pointer transition-transform hover:scale-110" data-color="transparent"></div>
       </div>
     </div>
 
-    <!-- 4. Output -->
-    <div class="p-5 border-b border-line">
-      <h3 class="text-[0.72rem] font-bold text-ink-muted uppercase tracking-widest mb-3 flex items-center gap-2">
-        <span class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-accent-soft text-accent text-[0.68rem] font-extrabold">4</span>
-        Output
+    <div class="p-5 border-b border-line dark:border-slate-800">
+      <h3 class="text-[0.72rem] font-bold text-ink-muted dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+        <span class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-accent-soft dark:bg-blue-950 text-accent text-[0.68rem] font-extrabold">4</span>
+        <span data-i18n="sectionOutput">Output</span>
       </h3>
       <div class="mb-3">
-        <label class="block text-[0.78rem] font-semibold text-ink-2 mb-1.5">Format</label>
-        <select id="outputFormat" class="w-full px-2.5 py-2 border border-line rounded-lg text-sm bg-white outline-none transition-all focus:border-accent focus:ring-[3px] focus:ring-accent/15 appearance-none bg-no-repeat bg-[right_0.7rem_center] pr-8"
-                style="background-image:url(&quot;data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E&quot;)">
-          <option value="image/jpeg" selected>JPEG (.jpg)</option>
+        <label class="block text-[0.78rem] font-semibold text-ink-2 dark:text-slate-300 mb-1.5" data-i18n="format">Format</label>
+        <select id="outputFormat" class="w-full px-2.5 py-2 border border-line dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-ink dark:text-slate-100 outline-none focus:border-accent">
+          <option value="image/webp" selected>WebP (.webp)</option>
+          <option value="image/jpeg">JPEG (.jpg)</option>
           <option value="image/png">PNG (.png)</option>
-          <option value="image/webp">WebP (.webp)</option>
         </select>
       </div>
       <div>
-        <label class="block text-[0.78rem] font-semibold text-ink-2 mb-1.5">Target size (KB)</label>
+        <label class="block text-[0.78rem] font-semibold text-ink-2 dark:text-slate-300 mb-1.5" data-i18n="targetSize">Target size (KB)</label>
         <div class="flex items-center gap-2">
-          <input type="number" id="sizeMin" value="20" min="1" class="flex-1 min-w-0 px-2.5 py-2 border border-line rounded-lg text-sm bg-white outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15">
+          <input type="number" id="sizeMin" value="20" min="1" class="flex-1 min-w-0 px-2.5 py-2 border border-line dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 outline-none focus:border-accent">
           <span class="text-sm text-ink-muted">–</span>
-          <input type="number" id="sizeMax" value="50" min="1" class="flex-1 min-w-0 px-2.5 py-2 border border-line rounded-lg text-sm bg-white outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15">
+          <input type="number" id="sizeMax" value="50" min="1" class="flex-1 min-w-0 px-2.5 py-2 border border-line dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 outline-none focus:border-accent">
           <span class="text-xs text-ink-muted font-semibold">KB</span>
         </div>
       </div>
     </div>
 
-    <!-- 5. Process -->
-    <div class="p-5 border-b border-line">
-      <h3 class="text-[0.72rem] font-bold text-ink-muted uppercase tracking-widest mb-3 flex items-center gap-2">
-        <span class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-accent-soft text-accent text-[0.68rem] font-extrabold">5</span>
-        Process
+    <div class="p-5 border-b border-line dark:border-slate-800">
+      <h3 class="text-[0.72rem] font-bold text-ink-muted dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+        <span class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-accent-soft dark:bg-blue-950 text-accent text-[0.68rem] font-extrabold">5</span>
+        <span data-i18n="sectionPresets">Presets</span>
       </h3>
-      <button id="processBtn" disabled
-              class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-accent shadow-[0_2px_6px_rgba(59,130,246,.3)] transition-all hover:bg-accent-hover hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(59,130,246,.4)] active:translate-y-0 disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        <span id="processBtnText">Process All</span>
-      </button>
-      <div class="mt-3">
-        <div class="h-1.5 bg-slate-50 rounded-full border border-line overflow-hidden">
-          <div id="progressFill" class="h-full w-0 bg-gradient-to-r from-accent to-violet-500 rounded-full transition-[width] duration-300"></div>
-        </div>
-        <div id="status" class="text-xs text-ink-muted mt-2 min-h-[1.1em] break-words">Ready.</div>
+      <select id="presetSelect" class="w-full px-2.5 py-2 border border-line dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-ink dark:text-slate-100 outline-none focus:border-accent mb-2">
+        <option value="">—</option>
+      </select>
+      <div class="flex gap-2">
+        <button id="savePresetBtn" class="flex-1 px-3 py-2 rounded-lg text-xs font-semibold text-ink-2 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-line dark:border-slate-700 hover:bg-white dark:hover:bg-slate-700 transition-colors" data-i18n="saveCurrent">Save current</button>
+        <button id="deletePresetBtn" class="px-3 py-2 rounded-lg text-xs font-semibold text-danger bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 hover:bg-red-100 transition-colors" data-i18n="delete">Delete</button>
       </div>
     </div>
 
-    <!-- 6. Download -->
-    <div class="p-5">
-      <h3 class="text-[0.72rem] font-bold text-ink-muted uppercase tracking-widest mb-3 flex items-center gap-2">
-        <span class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-accent-soft text-accent text-[0.68rem] font-extrabold">6</span>
-        Download
+    <div class="p-5 border-b border-line dark:border-slate-800">
+      <h3 class="text-[0.72rem] font-bold text-ink-muted dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+        <span class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-accent-soft dark:bg-blue-950 text-accent text-[0.68rem] font-extrabold">6</span>
+        <span data-i18n="sectionProcess">Process</span>
       </h3>
-      <button id="downloadZipBtn" disabled
-              class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-ink-2 bg-slate-50 border border-line transition-all hover:bg-white hover:border-line-2 disabled:text-slate-300 disabled:cursor-not-allowed">
-        Download ZIP
+      <button id="processBtn" disabled class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-accent shadow-[0_2px_6px_rgba(59,130,246,.3)] transition-all hover:bg-accent-hover disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:shadow-none disabled:cursor-not-allowed">
+        <svg id="processBtnIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <span id="processBtnText" data-i18n="processAll">Process All</span>
       </button>
-      <button id="downloadIndividualBtn" disabled
-              class="w-full mt-2 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-ink-2 bg-slate-50 border border-line transition-all hover:bg-white hover:border-line-2 disabled:text-slate-300 disabled:cursor-not-allowed">
-        Download Individually
-      </button>
+      <div class="mt-3">
+        <div class="h-1.5 bg-slate-50 dark:bg-slate-800 rounded-full border border-line dark:border-slate-700 overflow-hidden">
+          <div id="progressFill" class="h-full w-0 bg-gradient-to-r from-accent to-violet-500 rounded-full transition-[width] duration-300"></div>
+        </div>
+        <div id="status" class="text-xs text-ink-muted dark:text-slate-400 mt-2 min-h-[1.1em] break-words" data-i18n="ready">Ready.</div>
+      </div>
     </div>
 
-    <div class="px-5 py-4 bg-slate-50 border-t border-line mt-auto text-xs text-ink-muted text-center">
+    <div class="p-5">
+      <h3 class="text-[0.72rem] font-bold text-ink-muted dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+        <span class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-accent-soft dark:bg-blue-950 text-accent text-[0.68rem] font-extrabold">7</span>
+        <span data-i18n="sectionDownload">Download</span>
+      </h3>
+      <button id="downloadZipBtn" disabled class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-ink-2 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-line dark:border-slate-700 transition-all hover:bg-white dark:hover:bg-slate-700 disabled:text-slate-300 disabled:cursor-not-allowed">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span data-i18n="downloadZip">Download ZIP</span>
+      </button>
+      <p class="text-[0.7rem] text-ink-muted dark:text-slate-400 mt-2 text-center" data-i18n="zipHint">Tip: click any processed image to download it individually</p>
+    </div>
+
+    <div class="px-5 py-4 bg-slate-50 dark:bg-slate-800 border-t border-line dark:border-slate-800 mt-auto text-xs text-ink-muted dark:text-slate-400 text-center" data-i18n="privacy">
       🔒 Images never leave your device
     </div>
   </aside>
 </div>
 
-<!-- ===================== CROP MODAL ===================== -->
 <div id="cropModal" class="fixed inset-0 bg-ink/75 backdrop-blur-sm hidden items-center justify-center z-[200] p-4">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[calc(100vh-2rem)] overflow-hidden">
-    <div class="px-5 py-4 border-b border-line flex items-center justify-between shrink-0">
-      <h3 class="text-base font-bold">Manual Crop</h3>
-      <button id="cropModalClose" title="Close" class="w-8 h-8 rounded-lg border-none bg-transparent cursor-pointer text-2xl text-ink-muted leading-none flex items-center justify-center transition-colors hover:bg-slate-50 hover:text-ink">×</button>
+  <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[calc(100vh-2rem)] overflow-hidden">
+    <div class="px-5 py-4 border-b border-line dark:border-slate-800 flex items-center justify-between shrink-0">
+      <h3 class="text-base font-bold" data-i18n="manualCrop">Manual Crop</h3>
+      <div class="flex items-center gap-2">
+        <button id="cropUndo" class="w-8 h-8 rounded-lg border border-line dark:border-slate-700 bg-transparent text-ink-muted dark:text-slate-400 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30" disabled>
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+        </button>
+        <button id="cropRedo" class="w-8 h-8 rounded-lg border border-line dark:border-slate-700 bg-transparent text-ink-muted dark:text-slate-400 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30" disabled>
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>
+        </button>
+        <button id="cropModalClose" class="w-8 h-8 rounded-lg bg-transparent text-2xl text-ink-muted dark:text-slate-400 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800">×</button>
+      </div>
     </div>
     <div class="p-5 flex-1 overflow-auto flex flex-col items-center gap-3">
-      <p class="text-xs text-ink-muted text-center max-w-[420px] leading-snug">
-        Drag the box to reposition · Drag a corner to resize ·
-        Press <kbd class="bg-slate-50 border border-line rounded px-1.5 py-0.5 text-[0.72rem] font-mono">Esc</kbd> to cancel
-      </p>
       <div id="cropStage" class="relative overflow-hidden rounded-lg checker-soft touch-none select-none shadow-[0_0_0_1px_#e2e8f0]">
         <img id="cropBgImg" alt="" class="block pointer-events-none select-none" draggable="false">
-        <div id="cropRect" class="absolute border-2 border-white cursor-move touch-none z-[2] thirds"
-             style="box-shadow:0 0 0 9999px rgba(15,23,42,.6);">
+        <div id="cropRect" class="absolute border-2 border-white cursor-move touch-none z-[2] thirds" style="box-shadow:0 0 0 9999px rgba(15,23,42,.6);">
           <div class="crop-handle absolute w-[18px] h-[18px] bg-white rounded-full border-2 border-accent shadow-[0_1px_3px_rgba(0,0,0,.35)] z-[3] touch-none cursor-nwse-resize -top-[9px] -left-[9px]" data-h="nw"></div>
           <div class="crop-handle absolute w-[18px] h-[18px] bg-white rounded-full border-2 border-accent shadow-[0_1px_3px_rgba(0,0,0,.35)] z-[3] touch-none cursor-nesw-resize -top-[9px] -right-[9px]" data-h="ne"></div>
           <div class="crop-handle absolute w-[18px] h-[18px] bg-white rounded-full border-2 border-accent shadow-[0_1px_3px_rgba(0,0,0,.35)] z-[3] touch-none cursor-nesw-resize -bottom-[9px] -left-[9px]" data-h="sw"></div>
           <div class="crop-handle absolute w-[18px] h-[18px] bg-white rounded-full border-2 border-accent shadow-[0_1px_3px_rgba(0,0,0,.35)] z-[3] touch-none cursor-nwse-resize -bottom-[9px] -right-[9px]" data-h="se"></div>
         </div>
       </div>
-      <p id="cropDims" class="text-xs text-ink-muted text-center max-w-[420px] leading-snug"></p>
+      <p id="cropDims" class="text-xs text-ink-muted dark:text-slate-400 text-center"></p>
     </div>
-    <div class="px-5 py-3.5 border-t border-line flex items-center gap-2 bg-slate-50 shrink-0 max-lg:flex-wrap">
-      <button id="cropReset" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-ink-2 bg-slate-50 border border-line transition-all hover:bg-white hover:border-line-2">Reset to Face Crop</button>
+    <div class="px-5 py-3.5 border-t border-line dark:border-slate-800 flex items-center gap-2 bg-slate-50 dark:bg-slate-800 shrink-0 max-lg:flex-wrap">
+      <button id="cropReset" class="px-4 py-2 rounded-lg text-sm font-semibold text-ink-2 dark:text-slate-300 bg-white dark:bg-slate-900 border border-line dark:border-slate-700" data-i18n="reset">Reset</button>
       <div class="flex-1 max-lg:hidden"></div>
-      <button id="cropCancel" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-ink-2 bg-slate-50 border border-line transition-all hover:bg-white hover:border-line-2">Cancel</button>
-      <button id="cropApply" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white bg-accent shadow-[0_2px_6px_rgba(59,130,246,.3)] transition-all hover:bg-accent-hover hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(59,130,246,.4)]">Apply Crop</button>
+      <button id="cropCancel" class="px-4 py-2 rounded-lg text-sm font-semibold text-ink-2 dark:text-slate-300 bg-white dark:bg-slate-900 border border-line dark:border-slate-700" data-i18n="cancel">Cancel</button>
+      <button id="cropApply" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-accent hover:bg-accent-hover" data-i18n="applyCrop">Apply Crop</button>
+    </div>
+  </div>
+</div>
+
+<div id="presetModal" class="fixed inset-0 bg-ink/75 backdrop-blur-sm hidden items-center justify-center z-[200] p-4">
+  <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm p-5">
+    <h3 class="text-base font-bold mb-3" data-i18n="savePresetAs">Save preset as</h3>
+    <input type="text" id="presetName" maxlength="40" placeholder="e.g. BD Passport Blue" class="w-full px-3 py-2 border border-line dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 outline-none focus:border-accent mb-3">
+    <div class="flex justify-end gap-2">
+      <button id="presetCancel" class="px-4 py-2 rounded-lg text-sm font-semibold text-ink-2 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-line dark:border-slate-700" data-i18n="cancel">Cancel</button>
+      <button id="presetSave" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-accent hover:bg-accent-hover" data-i18n="save">Save</button>
     </div>
   </div>
 </div>
@@ -307,138 +358,315 @@
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.2/dist/jszip.min.js"></script>
 
 <script>
-/* =================================================================
-   Pipeline: AI-first-then-crop.
-   - AI removes background on the FULL image (not a pre-crop), so
-     clothing isn't mistakenly included as background.
-   - Then face-aware crop to the target passport dimensions.
-   - Manual crop modal lets the user fine-tune after processing.
-   ================================================================= */
-
 const $ = id => document.getElementById(id);
 const dropZone = $('dropZone'), fileInput = $('fileInput'), clearBtn = $('clearBtn');
-const autoFocus = $('autoFocus');
+const autoFocus = $('autoFocus'), autoEnhance = $('autoEnhance'), trimEdges = $('trimEdges');
 const sizeMin = $('sizeMin'), sizeMax = $('sizeMax');
 const cropPreset = $('cropPreset'), customCropGroup = $('customCropGroup');
 const customCropW = $('customCropW'), customCropH = $('customCropH');
 const bgColorInput = $('bgColor'), swatches = $('swatches'), colorHex = $('colorHex');
 const colorPreview = $('colorPreview');
 const outputFormat = $('outputFormat');
-const processBtn = $('processBtn'), processBtnText = $('processBtnText');
-const downloadZipBtn = $('downloadZipBtn'), downloadIndividualBtn = $('downloadIndividualBtn');
+const processBtn = $('processBtn'), processBtnText = $('processBtnText'), processBtnIcon = $('processBtnIcon');
+const downloadZipBtn = $('downloadZipBtn');
 const progressFill = $('progressFill'), statusEl = $('status');
 const library = $('library'), libCount = $('libCount');
 const modelPill = $('modelPill'), modelDot = $('modelDot'), modelPillText = $('modelPillText');
-
-const cropModal = $('cropModal');
-const cropModalClose = $('cropModalClose');
-const cropStage = $('cropStage');
-const cropBgImg = $('cropBgImg');
-const cropRect = $('cropRect');
-const cropDims = $('cropDims');
-const cropReset = $('cropReset');
-const cropCancel = $('cropCancel');
-const cropApply = $('cropApply');
+const themeToggle = $('themeToggle'), themeIconSun = $('themeIconSun'), themeIconMoon = $('themeIconMoon');
+const presetSelect = $('presetSelect'), savePresetBtn = $('savePresetBtn'), deletePresetBtn = $('deletePresetBtn');
+const presetModal = $('presetModal'), presetName = $('presetName'), presetSave = $('presetSave'), presetCancel = $('presetCancel');
+const cropModal = $('cropModal'), cropModalClose = $('cropModalClose');
+const cropStage = $('cropStage'), cropBgImg = $('cropBgImg');
+const cropRect = $('cropRect'), cropDims = $('cropDims');
+const cropReset = $('cropReset'), cropCancel = $('cropCancel'), cropApply = $('cropApply');
+const cropUndo = $('cropUndo'), cropRedo = $('cropRedo');
+const langToggle = $('langToggle'), langLabel = $('langLabel');
+const aiOverlay = $('aiOverlay'), aiOverlayBar = $('aiOverlayBar');
+const aiOverlayTitle = $('aiOverlayTitle'), aiOverlaySubtitle = $('aiOverlaySubtitle');
+const aiOverlayPct = $('aiOverlayPct'), aiOverlayNote = $('aiOverlayNote');
 
 let items = [];
 let processing = false;
-let removeBgFn = null;
-let colorDebounce = null;
 let idCounter = 0;
 let cropState = null;
+let currentLang = 'en';
+let currentModelPct = 0;
+let warmupPromise = null;
 
-const CROP_PRESETS = {
-  'bd-passport':    { w: 472, h: 590 },
-  'bd-visa':        { w: 413, h: 531 },
-  'us-passport':    { w: 600, h: 600 },
-  'schengen-visa':  { w: 413, h: 531 },
-  'india-passport': { w: 413, h: 413 },
-  'china-visa':     { w: 390, h: 567 },
-  'square':         { w: 500, h: 500 },
+const I18N = {
+  en: {
+    tagline:'100% local · no uploads',
+    dropTitle:'Drop images here', dropHint:'or click to browse — or paste with Ctrl+V',
+    library:'Library', clear:'Clear',
+    sectionFocus:'Subject Focus', autoFocus:'Auto-focus subject', autoFocusHint:'Frames the head like a passport photo',
+    autoEnhance:'Auto-enhance', autoEnhanceHint:'Brightness + contrast boost',
+    trimEdges:'Trim transparent edges', trimEdgesHint:'Removes empty margins around subject',
+    sectionCrop:'Crop', preset:'Preset', customSize:'Custom size (px)',
+    sectionBg:'Background Color', sectionOutput:'Output', format:'Format', targetSize:'Target size (KB)',
+    sectionPresets:'Presets', saveCurrent:'Save current', delete:'Delete',
+    sectionProcess:'Process', processAll:'Process All', processing:'Processing…', ready:'Ready.',
+    sectionDownload:'Download', downloadZip:'Download ZIP', zipHint:'Tip: click any processed image to download it individually',
+    privacy:'🔒 Images never leave your device', manualCrop:'Manual Crop', reset:'Reset', cancel:'Cancel', applyCrop:'Apply Crop',
+    savePresetAs:'Save preset as', save:'Save',
+    selected:(n)=>`${n} image(s) selected.`, noValid:'No valid image files.',
+    processingN:(i,n,name)=>`Processing ${i}/${n} — ${name}`,
+    doneN:(ok,n)=>`✅ Done. ${ok}/${n} succeeded.`,
+    starting:'Starting…', buildingZip:'Building ZIP…', zipDone:(kb)=>`✅ ZIP downloaded (${kb} KB).`, zipFail:'❌ ZIP failed.',
+    nothingToDownload:'Nothing to download — process first.',
+    loading:'Loading image…', detecting:'Detecting face…', preparing:'Preparing for AI…',
+    removing:'Removing background (AI)…', reading:'Reading subject…', framing:'Framing photo…', encoding:'Encoding…',
+    doneBadge:'Done', readyBadge:'Ready', errorBadge:'Error', faceBadge:'Face ✓', croppedBadge:'Cropped',
+    editCrop:'Edit crop', download:'Download',
+    aiNotLoaded:'AI not loaded', aiLoading:'Loading AI…', aiReady:'AI ready', aiFailed:'AI failed',
+    downloadingModel:'Downloading AI model',
+    aiOverlaySubtitle:'RMBG-1.4 · first-time setup only',
+    aiOverlayNote:'The model is cached after download — you\'ll only see this once.',
+    waitingForAI:(p)=>`Waiting for AI… ${p}%`,
+    presetSaved:(n)=>`Preset "${n}" saved.`, presetLoaded:(n)=>`Preset "${n}" loaded.`,
+    presetDeleted:(n)=>`Preset "${n}" deleted.`, selectPresetToDelete:'Select a preset to delete.',
+    confirmDelete:(n)=>`Delete preset "${n}"?`,
+  },
+  bn: {
+    tagline:'১০০% লোকাল · আপলোড নেই',
+    dropTitle:'এখানে ছবি ড্রপ করুন', dropHint:'অথবা ক্লিক করুন — বা Ctrl+V দিয়ে পেস্ট করুন',
+    library:'লাইব্রেরি', clear:'মুছুন',
+    sectionFocus:'বিষয় ফোকাস', autoFocus:'স্বয়ংক্রিয় বিষয় ফোকাস', autoFocusHint:'পাসপোর্ট ছবির মতো মাথা ফ্রেম করে',
+    autoEnhance:'স্বয়ংক্রিয় উন্নয়ন', autoEnhanceHint:'উজ্জ্বলতা ও কনট্রাস্ট বাড়ায়',
+    trimEdges:'স্বচ্ছ প্রান্ত কাটুন', trimEdgesHint:'বিষয়ের চারপাশের খালি অংশ সরায়',
+    sectionCrop:'ক্রপ', preset:'প্রিসেট', customSize:'কাস্টম আকার (পিক্সেল)',
+    sectionBg:'ব্যাকগ্রাউন্ড রঙ', sectionOutput:'আউটপুট', format:'ফরম্যাট', targetSize:'লক্ষ্য আকার (কেবি)',
+    sectionPresets:'প্রিসেট', saveCurrent:'বর্তমান সংরক্ষণ', delete:'মুছুন',
+    sectionProcess:'প্রক্রিয়া', processAll:'সব প্রক্রিয়া করুন', processing:'প্রক্রিয়া চলছে…', ready:'প্রস্তুত।',
+    sectionDownload:'ডাউনলোড', downloadZip:'জিপ ডাউনলোড', zipHint:'টিপ: প্রক্রিয়াকৃত ছবিতে ক্লিক করে আলাদা ডাউনলোড করুন',
+    privacy:'🔒 ছবি কখনো আপনার ডিভাইস ছাড়ে না', manualCrop:'ম্যানুয়াল ক্রপ', reset:'রিসেট', cancel:'বাতিল', applyCrop:'ক্রপ প্রয়োগ করুন',
+    savePresetAs:'প্রিসেট হিসেবে সংরক্ষণ', save:'সংরক্ষণ',
+    selected:(n)=>`${n} টি ছবি নির্বাচিত।`, noValid:'কোনো বৈধ ছবি নেই।',
+    processingN:(i,n,name)=>`প্রক্রিয়া ${i}/${n} — ${name}`,
+    doneN:(ok,n)=>`✅ সম্পন্ন। ${ok}/${n} সফল।`,
+    starting:'শুরু হচ্ছে…', buildingZip:'জিপ তৈরি হচ্ছে…', zipDone:(kb)=>`✅ জিপ ডাউনলোড হয়েছে (${kb} কেবি)।`, zipFail:'❌ জিপ ব্যর্থ।',
+    nothingToDownload:'ডাউনলোড করার কিছু নেই — আগে প্রক্রিয়া করুন।',
+    loading:'ছবি লোড হচ্ছে…', detecting:'মুখ শনাক্ত করা হচ্ছে…', preparing:'AI এর জন্য প্রস্তুত হচ্ছে…',
+    removing:'ব্যাকগ্রাউন্ড সরানো হচ্ছে (AI)…', reading:'বিষয় পড়া হচ্ছে…', framing:'ফটো ফ্রেম করা হচ্ছে…', encoding:'এনকোডিং…',
+    doneBadge:'সম্পন্ন', readyBadge:'প্রস্তুত', errorBadge:'ত্রুটি', faceBadge:'মুখ ✓', croppedBadge:'ক্রপ করা',
+    editCrop:'ক্রপ সম্পাদনা', download:'ডাউনলোড',
+    aiNotLoaded:'AI লোড হয়নি', aiLoading:'AI লোড হচ্ছে…', aiReady:'AI প্রস্তুত', aiFailed:'AI ব্যর্থ',
+    downloadingModel:'AI মডেল ডাউনলোড হচ্ছে',
+    aiOverlaySubtitle:'RMBG-1.4 · শুধুমাত্র প্রথমবার',
+    aiOverlayNote:'ডাউনলোডের পর মডেল ক্যাশ হয়ে যায় — শুধু একবার দেখবেন।',
+    waitingForAI:(p)=>`AI লোড হচ্ছে… ${p}%`,
+    presetSaved:(n)=>`প্রিসেট "${n}" সংরক্ষিত।`, presetLoaded:(n)=>`প্রিসেট "${n}" লোড হয়েছে।`,
+    presetDeleted:(n)=>`প্রিসেট "${n}" মুছে ফেলা হয়েছে।`, selectPresetToDelete:'মুছতে একটি প্রিসেট নির্বাচন করুন।',
+    confirmDelete:(n)=>`প্রিসেট "${n}" মুছবেন?`,
+  },
 };
-const WORKING_MAX = 1200;
+function t(key, ...args){
+  const d = I18N[currentLang] || I18N.en;
+  const v = d[key] !== undefined ? d[key] : (I18N.en[key] || key);
+  return typeof v === 'function' ? v(...args) : v;
+}
+function applyLang(lang){
+  currentLang = lang;
+  document.documentElement.lang = lang === 'bn' ? 'bn' : 'en';
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    const d = I18N[lang];
+    if (d && d[key] !== undefined && typeof d[key] !== 'function') el.textContent = d[key];
+  });
+  langLabel.textContent = lang === 'en' ? 'বাং' : 'EN';
+  try { localStorage.setItem('bip-lang', lang); } catch(e){}
+  render(); updateButtons();
+  setPill(currentPillState);
+  if (currentPillState === 'loading'){
+    aiOverlayTitle.textContent = t('downloadingModel');
+    aiOverlaySubtitle.textContent = t('aiOverlaySubtitle');
+    aiOverlayNote.textContent = t('aiOverlayNote');
+  }
+}
+langToggle.addEventListener('click', () => applyLang(currentLang === 'en' ? 'bn' : 'en'));
 
-function getOutputFormat(){
-  const v = outputFormat.value;
-  if (v === 'image/png')  return { mime: 'image/png',  ext: 'png',  opaque: false };
-  if (v === 'image/webp') return { mime: 'image/webp', ext: 'webp', opaque: false };
-  return { mime: 'image/jpeg', ext: 'jpg', opaque: true };
+/* ==== WORKER ==== */
+const workerSrc = `
+const LIBS = [
+  'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm',
+  'https://esm.sh/@imgly/background-removal@1.7.0',
+  'https://unpkg.com/@imgly/background-removal@1.7.0/dist/index.mjs',
+];
+let fn = null;
+async function load() {
+  if (fn) return fn;
+  let lastErr;
+  for (const url of LIBS) {
+    try { const m = await import(url); const f = m.default || m.removeBackground || m; if (typeof f === 'function') { fn = f; return f; } }
+    catch (e) { lastErr = e; }
+  }
+  throw new Error('AI load failed: ' + (lastErr ? lastErr.message : 'unknown'));
+}
+self.onmessage = async (e) => {
+  const { id, blob } = e.data;
+  try {
+    const f = await load();
+    const result = await f(blob, { output: { format: 'image/png' }, progress: (key, current, total) => self.postMessage({ id, progress: { key, current, total } }) });
+    self.postMessage({ id, result });
+  } catch (err) { self.postMessage({ id, error: err.message || String(err) }); }
+};
+`;
+const workerUrl = URL.createObjectURL(new Blob([workerSrc], { type: 'application/javascript' }));
+let aiWorker = null, reqId = 0;
+const pending = new Map();
+const modelBytesByKey = new Map();
+
+function getWorker(){
+  if (aiWorker) return aiWorker;
+  aiWorker = new Worker(workerUrl);
+  aiWorker.onmessage = (e) => {
+    const { id, result, error, progress } = e.data;
+    const p = pending.get(id);
+    if (!p) return;
+    if (progress){
+      const { key, current, total } = progress;
+      if (typeof current === 'number' && typeof total === 'number' && total > 0){
+        modelBytesByKey.set(key, { current, total });
+        let cur = 0, tot = 0;
+        for (const v of modelBytesByKey.values()){ cur += v.current; tot += v.total; }
+        if (tot > 0) showAiOverlay(Math.min(99, Math.round(cur / tot * 100)));
+      }
+      return;
+    }
+    pending.delete(id);
+    if (error) p.reject(new Error(error)); else p.resolve(result);
+  };
+  aiWorker.onerror = (e) => { for (const p of pending.values()) p.reject(new Error('Worker error')); pending.clear(); };
+  return aiWorker;
+}
+function aiRemoveBg(blob){
+  return new Promise((resolve, reject) => {
+    const id = ++reqId;
+    pending.set(id, { resolve, reject });
+    getWorker().postMessage({ id, blob });
+  });
+}
+function ensureAiLoaded(){
+  if (warmupPromise) return warmupPromise;
+  warmupPromise = (async () => {
+    try {
+      const c = document.createElement('canvas'); c.width = 96; c.height = 96;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,96,96);
+      ctx.fillStyle = '#222'; ctx.fillRect(30,30,36,36);
+      const blob = await new Promise((resolve, reject) => {
+        c.toBlob(b => b ? resolve(b) : reject(new Error('warmup blob failed')), 'image/png');
+      });
+      return await new Promise((resolve, reject) => {
+        const id = ++reqId;
+        pending.set(id, { resolve, reject });
+        getWorker().postMessage({ id, blob });
+      });
+    } catch (err){
+      warmupPromise = null;
+      throw err;
+    }
+  })();
+  warmupPromise.catch(() => {});
+  return warmupPromise;
+}
+function showAiOverlay(pct){
+  currentModelPct = pct;
+  aiOverlay.classList.remove('hidden');
+  aiOverlay.classList.add('flex');
+  aiOverlayBar.style.width = pct + '%';
+  aiOverlayPct.textContent = pct + '%';
+  aiOverlayTitle.textContent = t('downloadingModel');
+  aiOverlaySubtitle.textContent = t('aiOverlaySubtitle');
+  aiOverlayNote.textContent = t('aiOverlayNote');
+  updateButtons();
+}
+function hideAiOverlay(){
+  aiOverlay.classList.add('hidden');
+  aiOverlay.classList.remove('flex');
+  aiOverlayBar.style.width = '0%';
+  currentModelPct = 0;
 }
 
-function setStatus(msg, cls){
-  statusEl.textContent = msg;
-  statusEl.className = 'text-xs mt-2 min-h-[1.1em] break-words ' +
-    (cls === 'ok' ? 'text-ok font-medium' : cls === 'err' ? 'text-danger font-medium' : 'text-ink-muted');
+/* ==== PILL ==== */
+let currentPillState = 'idle';
+function currentPillText(){
+  const m = { idle:'aiNotLoaded', loading:'aiLoading', ready:'aiReady', fail:'aiFailed' };
+  return t(m[currentPillState] || 'aiNotLoaded');
 }
-function setPill(state, text){
-  modelPillText.textContent = text;
+function setPill(state){
+  currentPillState = state;
+  modelPillText.textContent = currentPillText();
   const map = {
-    idle:    { pill: 'bg-slate-50 border-line text-ink-2', dot: 'bg-slate-400' },
-    loading: { pill: 'bg-amber-50 border-amber-200 text-amber-800', dot: 'bg-warn animate-pulse-soft' },
-    ready:   { pill: 'bg-emerald-50 border-emerald-200 text-emerald-800', dot: 'bg-ok' },
-    fail:    { pill: 'bg-red-50 border-red-200 text-red-800', dot: 'bg-danger' },
+    idle:    ['bg-slate-50 dark:bg-slate-800 border-line dark:border-slate-700 text-ink-2 dark:text-slate-300','bg-slate-400'],
+    loading: ['bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300','bg-warn animate-pulse-soft'],
+    ready:   ['bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300','bg-ok'],
+    fail:    ['bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300','bg-danger'],
   };
   const c = map[state] || map.idle;
-  modelPill.className = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs transition-colors ' + c.pill;
-  modelDot.className = 'w-2 h-2 rounded-full ' + c.dot;
-}
-function yieldUI(){
-  return new Promise(res => requestAnimationFrame(() => setTimeout(res, 0)));
+  modelPill.className = 'hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs transition-colors ' + c[0];
+  modelDot.className = 'w-2 h-2 rounded-full ' + c[1];
+  updateButtons();
 }
 
-/* ---------- File selection ---------- */
+/* ==== THEME ==== */
+function applyTheme(dark){
+  document.documentElement.classList.toggle('dark', dark);
+  themeIconSun.classList.toggle('hidden', dark);
+  themeIconMoon.classList.toggle('hidden', !dark);
+  try { localStorage.setItem('bip-theme', dark ? 'dark' : 'light'); } catch(e){}
+}
+themeToggle.addEventListener('click', () => applyTheme(!document.documentElement.classList.contains('dark')));
+try {
+  const saved = localStorage.getItem('bip-theme');
+  if (saved) applyTheme(saved === 'dark');
+  else applyTheme(window.matchMedia('(prefers-color-scheme: dark)').matches);
+} catch(e){}
+
+/* ==== FILE SELECTION ==== */
 dropZone.addEventListener('click', () => fileInput.click());
 ['dragenter','dragover'].forEach(ev => dropZone.addEventListener(ev, e => {
-  e.preventDefault(); e.stopPropagation();
-  dropZone.classList.add('border-accent', 'bg-blue-50');
+  e.preventDefault(); e.stopPropagation(); dropZone.classList.add('border-accent','bg-blue-50');
 }));
 ['dragleave','drop'].forEach(ev => dropZone.addEventListener(ev, e => {
   e.preventDefault(); e.stopPropagation();
   if (ev === 'dragleave' && dropZone.contains(e.relatedTarget)) return;
-  dropZone.classList.remove('border-accent', 'bg-blue-50');
+  dropZone.classList.remove('border-accent','bg-blue-50');
 }));
-dropZone.addEventListener('drop', e => {
-  if (e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files);
-});
+dropZone.addEventListener('drop', e => { if (e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files); });
 window.addEventListener('dragover', e => e.preventDefault());
 window.addEventListener('drop', e => e.preventDefault());
-fileInput.addEventListener('change', () => {
-  if (fileInput.files.length) addFiles(fileInput.files);
-  fileInput.value = '';
+fileInput.addEventListener('change', () => { if (fileInput.files.length) addFiles(fileInput.files); fileInput.value = ''; });
+
+document.addEventListener('paste', e => {
+  const files = [];
+  for (const item of e.clipboardData?.items || []){
+    if (item.type.startsWith('image/')){ const f = item.getAsFile(); if (f) files.push(f); }
+  }
+  if (files.length){ addFiles(files); e.preventDefault(); }
 });
 
 clearBtn.addEventListener('click', () => {
   items.forEach(it => {
     if (it.thumbUrl) URL.revokeObjectURL(it.thumbUrl);
-    if (it.url) URL.revokeObjectURL(it.url);
+    if (it.transparentFramedUrl) URL.revokeObjectURL(it.transparentFramedUrl);
+    if (it._cropBgUrl) URL.revokeObjectURL(it._cropBgUrl);
   });
-  items = [];
-  render(); updateButtons();
-  setStatus('Ready.');
-  progressFill.style.width = '0%';
+  items = []; render(); updateButtons();
+  setStatus(t('ready')); progressFill.style.width = '0%';
 });
-
 function addFiles(list){
   const incoming = Array.from(list).filter(f => f.type.startsWith('image/'));
-  if (!incoming.length){ setStatus('No valid image files.', 'err'); return; }
+  if (!incoming.length){ setStatus(t('noValid'),'err'); return; }
   const fmt = getOutputFormat();
   for (const f of incoming){
-    items.push({
-      id: ++idCounter,
-      file: f,
-      thumbUrl: URL.createObjectURL(f),
-      state: 'pending',
-      progress: 0,
-      stage: '',
-      outputName: f.name.replace(/\.[^.]+$/, '') + '.' + fmt.ext,
-    });
+    items.push({ id: ++idCounter, file: f, thumbUrl: URL.createObjectURL(f), state:'pending', progress:0, stage:'', outputName: f.name.replace(/\.[^.]+$/,'') + '.' + fmt.ext });
   }
   render(); updateButtons();
-  setStatus(`${items.length} image(s) selected.`);
+  setStatus(t('selected', items.length));
 }
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 
-/* ---------- UI bindings ---------- */
+/* ==== UI BINDINGS ==== */
 cropPreset.addEventListener('change', () => {
   customCropGroup.style.display = cropPreset.value === 'custom' ? 'block' : 'none';
 });
@@ -475,39 +703,40 @@ function getCurrentColor(){
   return bgColorInput.dataset.transparent === '1' ? null : bgColorInput.value;
 }
 function onColorChange(){
-  if (!items.some(it => it.state === 'done')) return;
-  clearTimeout(colorDebounce);
-  colorDebounce = setTimeout(reencodeAll, 300);
-}
-async function reencodeAll(){
-  if (processing) return;
-  const tMin = (parseInt(sizeMin.value)||20) * 1024;
-  const tMax = (parseInt(sizeMax.value)||50) * 1024;
-  const fmt = getOutputFormat();
   const color = getCurrentColor();
-  const effectiveColor = color || (fmt.opaque ? '#ffffff' : null);
-  for (const it of items){
-    if (it.state !== 'done' || !it.transparentFramed) continue;
-    try{
-      const composed = compositeOnColor(it.transparentFramed, effectiveColor);
-      const blob = await encodeToTarget(composed, tMin, tMax, fmt.mime);
-      if (blob){
-        const newUrl = URL.createObjectURL(blob);
-        if (it.url) URL.revokeObjectURL(it.url);
-        it.blob = blob; it.url = newUrl; it.sizeKB = blob.size / 1024;
-        it.outputName = it.file.name.replace(/\.[^.]+$/, '') + '.' + fmt.ext;
-      }
-    }catch(e){ console.warn('Re-encode failed', e); }
+  const thumbs = library.querySelectorAll('.card[data-state="done"] .thumb, .card.done .thumb');
+  thumbs.forEach(el => { el.style.background = color || ''; });
+  if (cropState && !cropModal.classList.contains('hidden')){
+    cropStage.style.background = color || '#ffffff';
   }
-  render();
 }
-
 function updateButtons(){
-  processBtn.disabled = processing || items.length === 0;
-  const anyDone = items.some(it => it.state === 'done' && it.blob);
+  const noItems = items.length === 0;
+  const aiLoading = currentPillState === 'loading';
+
+  if (processing){
+    processBtn.disabled = true;
+    processBtnText.textContent = t('processing');
+  } else if (noItems){
+    processBtn.disabled = true;
+    processBtnText.textContent = t('processAll');
+  } else if (aiLoading){
+    processBtn.disabled = true;
+    processBtnText.textContent = t('waitingForAI', currentModelPct);
+  } else {
+    processBtn.disabled = false;
+    processBtnText.textContent = t('processAll');
+  }
+
+  const anyDone = items.some(it => it.state === 'done' && it.transparentFramed);
   downloadZipBtn.disabled = !anyDone || processing;
-  downloadIndividualBtn.disabled = !anyDone || processing;
 }
+function setStatus(msg, cls){
+  statusEl.textContent = msg;
+  statusEl.className = 'text-xs mt-2 min-h-[1.1em] break-words ' +
+    (cls === 'ok' ? 'text-ok font-medium' : cls === 'err' ? 'text-danger font-medium' : 'text-ink-muted dark:text-slate-400');
+}
+function yieldUI(){ return new Promise(r => requestAnimationFrame(() => setTimeout(r, 0))); }
 function updateCardProgress(item){
   const card = library.querySelector(`.card[data-id="${item.id}"]`);
   if (!card) return;
@@ -524,124 +753,106 @@ async function setCardProgress(item, stage, pct){
   await yieldUI();
 }
 
-/* ---------- Load AI on demand ---------- */
-async function loadAiModule(){
-  if (removeBgFn) return removeBgFn;
-  setPill('loading','Loading AI…');
-  setStatus('Downloading AI library…');
-  const urls = [
-    'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm',
-    'https://esm.sh/@imgly/background-removal@1.7.0',
-    'https://unpkg.com/@imgly/background-removal@1.7.0/dist/index.mjs',
-  ];
-  let lastErr;
-  for (const url of urls){
-    try{
-      const mod = await import(/* @vite-ignore */ url);
-      const fn = mod.default || mod.removeBackground || mod;
-      if (typeof fn !== 'function') throw new Error('Library export is not a function');
-      removeBgFn = fn;
-      setPill('ready','AI ready');
-      return fn;
-    }catch(err){ lastErr = err; console.warn('Import failed:', url, err); }
-  }
-  setPill('fail','AI failed');
-  throw new Error('Could not load AI library. ' + (lastErr?.message || ''));
-}
+/* ==== HELPERS ==== */
+const CROP_PRESETS = {
+  'bd-passport':{w:472,h:590}, 'bd-visa':{w:413,h:531}, 'us-passport':{w:600,h:600},
+  'schengen-visa':{w:413,h:531}, 'india-passport':{w:413,h:413}, 'china-visa':{w:390,h:567}, 'square':{w:500,h:500},
+};
+const AI_MAX = 512, MAX_ORIG = 1400;
 
-/* ---------- Face detection ---------- */
+function getOutputFormat(){
+  const v = outputFormat.value;
+  if (v === 'image/png')  return { mime:'image/png', ext:'png', opaque:false };
+  if (v === 'image/jpeg') return { mime:'image/jpeg', ext:'jpg', opaque:true };
+  return { mime:'image/webp', ext:'webp', opaque:false };
+}
 async function detectFace(canvas){
   if (typeof FaceDetector === 'undefined') return null;
   try{
-    const fd = new FaceDetector({ fastMode: true, maxDetectedFaces: 5 });
+    const fd = new FaceDetector({ fastMode:true, maxDetectedFaces:5 });
     const faces = await fd.detect(canvas);
     if (!faces.length) return null;
-    const largest = faces.reduce((a, b) => {
-      const aA = a.boundingBox.width * a.boundingBox.height;
-      const bA = b.boundingBox.width * b.boundingBox.height;
+    const largest = faces.reduce((a,b)=>{
+      const aA = a.boundingBox.width*a.boundingBox.height;
+      const bA = b.boundingBox.width*b.boundingBox.height;
       return aA > bA ? a : b;
     });
     const bb = largest.boundingBox;
-    return { x: bb.x, y: bb.y, w: bb.width, h: bb.height };
-  }catch(e){ console.warn('FaceDetector failed:', e); return null; }
+    return { x:bb.x, y:bb.y, w:bb.width, h:bb.height };
+  }catch(e){ return null; }
 }
-
-/* ---------- Target dims ---------- */
 function getTargetDims(){
-  const preset = cropPreset.value;
-  if (preset === 'custom'){
-    const w = parseInt(customCropW.value) || null;
-    const h = parseInt(customCropH.value) || null;
-    if (w && h) return { w, h };
-    return null;
+  const p = cropPreset.value;
+  if (p === 'custom'){
+    const w = parseInt(customCropW.value)||null, h = parseInt(customCropH.value)||null;
+    return (w && h) ? { w, h } : null;
   }
-  const p = CROP_PRESETS[preset];
-  return p ? { w: p.w, h: p.h } : null;
+  const pp = CROP_PRESETS[p];
+  return pp ? { w: pp.w, h: pp.h } : null;
 }
-
-/* ---------- Default crop box (face-aware) ---------- */
 function computeDefaultCrop(srcCanvas, faceBox, targetW, targetH){
   const aspect = targetW / targetH;
-  const HEAD_RATIO = 0.62;
-  const EYE_FROM_TOP = 0.38;
-
+  const HEAD_RATIO = 0.62, EYE_FROM_TOP = 0.38;
   let cropLeft, cropTop, cropW, cropH;
-
   if (faceBox){
     const faceCenterX = faceBox.x + faceBox.w / 2;
     const estimatedHeadH = faceBox.h * 1.35;
     const eyeY = faceBox.y + faceBox.h * 0.40;
-
     cropH = estimatedHeadH / HEAD_RATIO;
     cropW = cropH * aspect;
-
     const minCropH = srcCanvas.height / 3.5;
-    if (cropH < minCropH){
-      cropH = minCropH;
-      cropW = cropH * aspect;
-    }
-
+    if (cropH < minCropH){ cropH = minCropH; cropW = cropH * aspect; }
     cropLeft = faceCenterX - cropW / 2;
-    cropTop  = eyeY - cropH * EYE_FROM_TOP;
+    cropTop = eyeY - cropH * EYE_FROM_TOP;
   } else {
     cropH = srcCanvas.height * 0.85;
     cropW = cropH * aspect;
-    if (cropW > srcCanvas.width){
-      cropW = srcCanvas.width;
-      cropH = cropW / aspect;
-    }
+    if (cropW > srcCanvas.width){ cropW = srcCanvas.width; cropH = cropW / aspect; }
     cropLeft = (srcCanvas.width - cropW) / 2;
-    cropTop  = srcCanvas.height * 0.02;
+    cropTop = srcCanvas.height * 0.02;
   }
   return { left: cropLeft, top: cropTop, w: cropW, h: cropH };
 }
-
-/* ---------- Apply a crop box to a target canvas ---------- */
 function cropToTarget(srcCanvas, crop, targetW, targetH){
   const out = document.createElement('canvas');
-  out.width = targetW;
-  out.height = targetH;
+  out.width = targetW; out.height = targetH;
   const ctx = out.getContext('2d');
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
-  const sx = targetW / crop.w;
-  const sy = targetH / crop.h;
-  const dx = -crop.left * sx;
-  const dy = -crop.top  * sy;
-  const dw = srcCanvas.width  * sx;
-  const dh = srcCanvas.height * sy;
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  const sx = targetW / crop.w, sy = targetH / crop.h;
+  const dx = -crop.left * sx, dy = -crop.top * sy;
+  const dw = srcCanvas.width * sx, dh = srcCanvas.height * sy;
   ctx.drawImage(srcCanvas, dx, dy, dw, dh);
   return out;
 }
-
-/* ---------- Helpers ---------- */
+function trimTransparent(canvas){
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  let data; try { data = ctx.getImageData(0,0,w,h).data; } catch(e){ return canvas; }
+  let minX=w,minY=h,maxX=-1,maxY=-1;
+  const step = 2;
+  for (let y=0;y<h;y+=step) for (let x=0;x<w;x+=step){
+    if (data[(y*w+x)*4+3] > 15){
+      if (x<minX) minX=x; if (x>maxX) maxX=x;
+      if (y<minY) minY=y; if (y>maxY) maxY=y;
+    }
+  }
+  if (maxX < 0) return canvas;
+  const pad = Math.round(Math.min(maxX-minX, maxY-minY) * 0.02);
+  minX = Math.max(0, minX-pad); minY = Math.max(0, minY-pad);
+  maxX = Math.min(w-1, maxX+pad); maxY = Math.min(h-1, maxY+pad);
+  const outW = maxX-minX+1, outH = maxY-minY+1;
+  if (outW < 10 || outH < 10) return canvas;
+  const out = document.createElement('canvas');
+  out.width = outW; out.height = outH;
+  out.getContext('2d').drawImage(canvas, minX, minY, outW, outH, 0, 0, outW, outH);
+  return out;
+}
 function downscaleCanvas(src, maxDim){
   const { width, height } = src;
   if (Math.max(width, height) <= maxDim) return src;
   const s = maxDim / Math.max(width, height);
   const c = document.createElement('canvas');
-  c.width  = Math.max(1, Math.round(width  * s));
-  c.height = Math.max(1, Math.round(height * s));
+  c.width = Math.max(1, Math.round(width*s)); c.height = Math.max(1, Math.round(height*s));
   const ctx = c.getContext('2d');
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(src, 0, 0, c.width, c.height);
@@ -650,147 +861,89 @@ function downscaleCanvas(src, maxDim){
 function makeEncoder(canvas, mime){
   let offscreen = null;
   if (typeof OffscreenCanvas !== 'undefined'){
-    try{
-      offscreen = new OffscreenCanvas(canvas.width, canvas.height);
-      offscreen.getContext('2d').drawImage(canvas, 0, 0);
-    }catch(e){ offscreen = null; }
+    try{ offscreen = new OffscreenCanvas(canvas.width, canvas.height); offscreen.getContext('2d').drawImage(canvas, 0, 0); }
+    catch(e){ offscreen = null; }
   }
   return async function(quality){
-    if (offscreen){
-      try{ return await offscreen.convertToBlob({ type: mime, quality }); }
-      catch(e){ /* fall through */ }
-    }
+    if (offscreen){ try { return await offscreen.convertToBlob({ type: mime, quality }); } catch(e){} }
     return await new Promise(res => canvas.toBlob(res, mime, quality));
   };
 }
 async function encodeToTarget(canvas, targetMin, targetMax, mime){
   const encode = makeEncoder(canvas, mime);
-  let lo = 0.05, hi = 0.95, best = null;
-  for (let i = 0; i < 8; i++){
-    const mid = (lo + hi) / 2;
-    const blob = await encode(mid);
-    if (!blob) break;
-    if (blob.size <= targetMax){ best = blob; lo = mid; }
-    else { hi = mid; }
-    await yieldUI();
+  const targetMid = (targetMin + targetMax) / 2;
+  let blob = await encode(0.75);
+  if (blob && blob.size >= targetMin && blob.size <= targetMax) return blob;
+  let q = 0.75;
+  if (blob){ const ratio = targetMid / blob.size; q = Math.max(0.3, Math.min(0.9, q * ratio)); blob = await encode(q); if (blob && blob.size >= targetMin && blob.size <= targetMax) return blob; }
+  if (blob){ const ratio = targetMid / blob.size; q = Math.max(0.2, Math.min(0.92, q * ratio)); blob = await encode(q); if (blob && blob.size <= targetMax) return blob; }
+  for (const maxDim of [600,400,300,200]){
+    const small = downscaleCanvas(canvas, maxDim);
+    const enc2 = makeEncoder(small, mime);
+    const b = await enc2(0.7);
+    if (b && b.size <= targetMax) return b;
   }
-  if (best && best.size < targetMin){
-    for (let i = 0; i < 5; i++){
-      const q = Math.min(0.95, (best.size / targetMin) * 0.95 + 0.03);
-      const blob = await encode(q);
-      if (!blob) break;
-      if (blob.size >= targetMin && blob.size <= targetMax){ best = blob; break; }
-      if (blob.size > targetMax) break;
-      if (blob.size > best.size) best = blob;
-      await yieldUI();
-    }
-  }
-  if (!best){
-    for (const maxDim of [800,600,400,300,200,150,100]){
-      const small = downscaleCanvas(canvas, maxDim);
-      const enc2 = makeEncoder(small, mime);
-      let lo2 = 0.05, hi2 = 0.95, b = null;
-      for (let i = 0; i < 6; i++){
-        const mid = (lo2 + hi2) / 2;
-        const blob = await enc2(mid);
-        if (!blob) break;
-        if (blob.size <= targetMax){ b = blob; lo2 = mid; }
-        else { hi2 = mid; }
-        await yieldUI();
-      }
-      if (b){ best = b; break; }
-    }
-  }
-  return best;
+  return blob;
 }
 function compositeOnColor(alphaCanvas, color){
   const c = document.createElement('canvas');
-  c.width = alphaCanvas.width;
-  c.height = alphaCanvas.height;
+  c.width = alphaCanvas.width; c.height = alphaCanvas.height;
   const ctx = c.getContext('2d');
   if (color){ ctx.fillStyle = color; ctx.fillRect(0, 0, c.width, c.height); }
   ctx.drawImage(alphaCanvas, 0, 0);
   return c;
 }
 
-/* ---------- Re-encode one item ---------- */
-async function reencodeSingle(item){
-  const fmt = getOutputFormat();
-  const color = getCurrentColor();
-  const effectiveColor = color || (fmt.opaque ? '#ffffff' : null);
-  const tMin = (parseInt(sizeMin.value)||20) * 1024;
-  const tMax = (parseInt(sizeMax.value)||50) * 1024;
-
-  const composed = compositeOnColor(item.transparentFramed, effectiveColor);
-  const blob = await encodeToTarget(composed, tMin, tMax, fmt.mime);
-  if (!blob) return;
-
-  const previewBlob = await new Promise(res => composed.toBlob(res, fmt.mime, 0.9));
-  const url = previewBlob ? URL.createObjectURL(previewBlob) : '';
-  if (item.url) URL.revokeObjectURL(item.url);
-  item.blob = blob;
-  item.url = url;
-  item.sizeKB = blob.size / 1024;
-  item.outputName = item.file.name.replace(/\.[^.]+$/, '') + '.' + fmt.ext;
-  render();
-}
-
-/* ---------- Process one item ---------- */
+/* ==== PROCESS ONE ==== */
 async function processItem(it){
   const file = it.file;
   it.state = 'processing';
-
-  await setCardProgress(it, 'Loading image…', 5);
+  await setCardProgress(it, t('loading'), 5);
 
   let bitmap;
   try { bitmap = await createImageBitmap(file, { imageOrientation:'from-image' }); }
   catch { bitmap = await createImageBitmap(file); }
 
-  const MAX_ORIG = 1800;
   const scale0 = Math.min(1, MAX_ORIG / Math.max(bitmap.width, bitmap.height));
-  const ow = Math.max(1, Math.round(bitmap.width * scale0));
-  const oh = Math.max(1, Math.round(bitmap.height * scale0));
+  const ow = Math.max(1, Math.round(bitmap.width*scale0));
+  const oh = Math.max(1, Math.round(bitmap.height*scale0));
   const original = document.createElement('canvas');
   original.width = ow; original.height = oh;
   const octx = original.getContext('2d');
   octx.imageSmoothingEnabled = true; octx.imageSmoothingQuality = 'high';
+  if (autoEnhance.checked) octx.filter = 'brightness(1.06) contrast(1.08) saturate(1.05)';
   octx.drawImage(bitmap, 0, 0, ow, oh);
+  octx.filter = 'none';
   bitmap.close();
 
-  // 1. Detect face
   let faceBox = null;
   if (autoFocus.checked){
-    await setCardProgress(it, 'Detecting face…', 15);
+    await setCardProgress(it, t('detecting'), 15);
     faceBox = await detectFace(original);
     await yieldUI();
   }
 
-  // 2. Downscale for AI
-  await setCardProgress(it, 'Preparing for AI…', 30);
-  const AI_MAX = 1024;
+  await setCardProgress(it, t('preparing'), 30);
   const aiScale = Math.min(1, AI_MAX / Math.max(original.width, original.height));
-  const aiW = Math.max(1, Math.round(original.width  * aiScale));
-  const aiH = Math.max(1, Math.round(original.height * aiScale));
+  const aiW = Math.max(1, Math.round(original.width*aiScale));
+  const aiH = Math.max(1, Math.round(original.height*aiScale));
   const aiInput = document.createElement('canvas');
   aiInput.width = aiW; aiInput.height = aiH;
   aiInput.getContext('2d').drawImage(original, 0, 0, aiW, aiH);
-  await yieldUI();
 
   let faceBoxAI = null;
   if (faceBox){
-    const sx = aiW / original.width;
-    const sy = aiH / original.height;
+    const sx = aiW / original.width, sy = aiH / original.height;
     faceBoxAI = { x: faceBox.x*sx, y: faceBox.y*sy, w: faceBox.w*sx, h: faceBox.h*sy };
   }
 
-  // 3. AI remove bg on FULL image
-  await setCardProgress(it, 'Removing background (AI)…', 50);
+  await setCardProgress(it, t('removing'), 55);
   const aiBlob = await new Promise(res => aiInput.toBlob(res, 'image/png'));
   if (!aiBlob) throw new Error('Could not prepare image for AI');
-  const transparentBlob = await removeBgFn(aiBlob, { output:{ format:'image/png' } });
+  const transparentBlob = await aiRemoveBg(aiBlob);
   if (!transparentBlob) throw new Error('AI returned no result');
 
-  await setCardProgress(it, 'Reading subject…', 70);
+  await setCardProgress(it, t('reading'), 75);
   let transparentCanvas;
   try {
     const ab = await createImageBitmap(transparentBlob);
@@ -800,131 +953,131 @@ async function processItem(it){
     transparentCanvas.getContext('2d').drawImage(ab, 0, 0);
     ab.close();
   } catch(e){
-    console.warn('Fallback:', e);
     transparentCanvas = document.createElement('canvas');
     transparentCanvas.width = aiW; transparentCanvas.height = aiH;
     transparentCanvas.getContext('2d').drawImage(aiInput, 0, 0);
   }
+
+  if (trimEdges.checked){
+    const trimmed = trimTransparent(transparentCanvas);
+    if (trimmed !== transparentCanvas){
+      const sx = trimmed.width / transparentCanvas.width;
+      const sy = trimmed.height / transparentCanvas.height;
+      transparentCanvas = trimmed;
+      if (faceBoxAI) faceBoxAI = { x: faceBoxAI.x*sx, y: faceBoxAI.y*sy, w: faceBoxAI.w*sx, h: faceBoxAI.h*sy };
+    }
+  }
   await yieldUI();
 
-  // 4. Face-aware crop
-  await setCardProgress(it, 'Framing photo…', 82);
+  await setCardProgress(it, t('framing'), 85);
   const target = getTargetDims();
-  let transparentFramed;
-  let crop;
-
+  let transparentFramed, crop;
   if (target){
     crop = computeDefaultCrop(transparentCanvas, autoFocus.checked ? faceBoxAI : null, target.w, target.h);
     transparentFramed = cropToTarget(transparentCanvas, crop, target.w, target.h);
-    it.cropLeft = crop.left;
-    it.cropTop = crop.top;
-    it.cropW = crop.w;
-    it.cropH = crop.h;
-    it.targetW = target.w;
-    it.targetH = target.h;
+    it.cropLeft = crop.left; it.cropTop = crop.top;
+    it.cropW = crop.w; it.cropH = crop.h;
+    it.targetW = target.w; it.targetH = target.h;
     it.manualCrop = false;
   } else {
     transparentFramed = transparentCanvas;
     it.targetW = transparentCanvas.width;
     it.targetH = transparentCanvas.height;
-    it.cropLeft = 0;
-    it.cropTop = 0;
-    it.cropW = transparentCanvas.width;
-    it.cropH = transparentCanvas.height;
+    it.cropLeft = 0; it.cropTop = 0;
+    it.cropW = transparentCanvas.width; it.cropH = transparentCanvas.height;
     it.manualCrop = false;
   }
   it.transparentCanvas = transparentCanvas;
   it.faceBoxAI = faceBoxAI;
-  await yieldUI();
 
-  // 5. Encode
-  await setCardProgress(it, 'Encoding to target size…', 92);
+  const previewTransparent = await new Promise(res => transparentFramed.toBlob(res, 'image/png'));
+  if (it.transparentFramedUrl) URL.revokeObjectURL(it.transparentFramedUrl);
+  it.transparentFramedUrl = previewTransparent ? URL.createObjectURL(previewTransparent) : '';
+  it.transparentFramed = transparentFramed;
+
+  await setCardProgress(it, t('encoding'), 95);
   const fmt = getOutputFormat();
   const color = getCurrentColor();
   const effectiveColor = color || (fmt.opaque ? '#ffffff' : null);
-  const tMin = (parseInt(sizeMin.value)||20) * 1024;
-  const tMax = (parseInt(sizeMax.value)||50) * 1024;
-  const composed = compositeOnColor(transparentFramed, effectiveColor);
-  const blob = await encodeToTarget(composed, tMin, tMax, fmt.mime);
-  if (!blob) throw new Error('Could not reach target size');
-
-  const previewBlob = await new Promise(res => composed.toBlob(res, fmt.mime, 0.9));
-  const url = previewBlob ? URL.createObjectURL(previewBlob) : '';
+  const tMin = (parseInt(sizeMin.value)||20)*1024;
+  const tMax = (parseInt(sizeMax.value)||50)*1024;
+  try {
+    const composed = compositeOnColor(transparentFramed, effectiveColor);
+    const blob = await encodeToTarget(composed, tMin, tMax, fmt.mime);
+    if (blob) it.sizeKB = blob.size / 1024;
+  } catch(e){ it.sizeKB = 0; }
 
   const baseName = file.name.replace(/\.[^.]+$/, '');
   it.state = 'done';
   it.outputName = `${baseName}.${fmt.ext}`;
-  it.transparentFramed = transparentFramed;
-  it.blob = blob;
-  it.url = url;
-  it.sizeKB = blob.size / 1024;
   it.progress = 100;
-  it.stage = 'Done';
+  it.stage = t('doneBadge');
   it.faceDetected = !!faceBoxAI;
-  const scaleH = transparentCanvas.height / (crop ? crop.h : transparentCanvas.height);
-  it.zoomAmount = scaleH;
+  it.zoomAmount = transparentCanvas.height / (crop ? crop.h : transparentCanvas.height);
 }
 
-/* ---------- Process all ---------- */
+/* ==== PROCESS ALL ==== */
 processBtn.addEventListener('click', async () => {
   if (processing || items.length === 0) return;
-  processing = true; updateButtons();
-  processBtnText.textContent = 'Processing…';
-  progressFill.style.width = '0%';
-  setStatus('Starting…');
 
-  try { await loadAiModule(); }
-  catch(err){
-    processing = false; updateButtons();
-    processBtnText.textContent = 'Process All';
-    setStatus('❌ ' + err.message, 'err');
-    return;
+  if (currentPillState !== 'ready'){
+    setPill('loading');
+    showAiOverlay(currentModelPct);
+    try {
+      await ensureAiLoaded();
+      setPill('ready');
+      hideAiOverlay();
+      modelBytesByKey.clear();
+    } catch (err){
+      setPill('fail');
+      hideAiOverlay();
+      setStatus('❌ ' + err.message, 'err');
+      return;
+    }
   }
 
+  processing = true; updateButtons();
+  progressFill.style.width = '0%';
+  setStatus(t('starting'));
+
   for (const it of items){
-    it.state = 'pending';
-    it.progress = 0; it.stage = '';
-    if (it.url){ URL.revokeObjectURL(it.url); it.url = null; }
-    it.blob = null; it.transparentFramed = null;
-    it.transparentCanvas = null; it.sizeKB = 0;
-    it.manualCrop = false;
+    it.state = 'pending'; it.progress = 0; it.stage = '';
+    if (it.transparentFramedUrl){ URL.revokeObjectURL(it.transparentFramedUrl); it.transparentFramedUrl = null; }
+    it.transparentFramed = null; it.transparentCanvas = null; it.sizeKB = 0; it.manualCrop = false;
   }
   render();
 
   let done = 0;
   for (const it of items){
-    setStatus(`Processing ${done+1}/${items.length} — ${it.file.name}`);
+    setStatus(t('processingN', done+1, items.length, it.file.name));
     it.state = 'processing';
-    render();
-    await yieldUI();
+    render(); await yieldUI();
     try{ await processItem(it); }
-    catch(err){
-      console.error('Failed:', it.file.name, err);
-      it.state = 'error'; it.error = err.message;
-    }
+    catch(err){ console.error('Failed:', it.file.name, err); it.state = 'error'; it.error = err.message; }
     done++;
     progressFill.style.width = `${(done/items.length)*100}%`;
-    render();
-    updateButtons();
+    render(); updateButtons();
     await yieldUI();
   }
-
   processing = false;
-  processBtnText.textContent = 'Process All';
   updateButtons(); render();
   const ok = items.filter(i => i.state === 'done').length;
-  setStatus(`✅ Done. ${ok}/${items.length} succeeded.`, 'ok');
+  setStatus(t('doneN', ok, items.length), 'ok');
 });
 
-/* ---------- Render ---------- */
+/* ==== RENDER ==== */
 function render(){
   library.innerHTML = '';
-  libCount.textContent = `${items.length} image${items.length === 1 ? '' : 's'}`;
+  libCount.textContent = currentLang === 'bn'
+    ? `${items.length} টি ছবি`
+    : `${items.length} image${items.length === 1 ? '' : 's'}`;
 
   if (!items.length){
-    library.innerHTML = `<div class="col-span-full p-12 text-center text-ink-muted text-sm bg-white border border-line rounded-xl">No images yet. Drop or select images to get started.</div>`;
+    library.innerHTML = `<div class="col-span-full p-12 text-center text-ink-muted dark:text-slate-400 text-sm bg-white dark:bg-slate-900 border border-line dark:border-slate-800 rounded-xl">${currentLang === 'bn' ? 'এখনো কোনো ছবি নেই। শুরু করতে ছবি ড্রপ, সিলেক্ট বা পেস্ট করুন।' : 'No images yet. Drop, select, or paste images to get started.'}</div>`;
     return;
   }
+
+  const currentColor = getCurrentColor();
 
   items.forEach(it => {
     const card = document.createElement('div');
@@ -932,46 +1085,41 @@ function render(){
     const isDone = it.state === 'done';
     const isError = it.state === 'error';
 
-    card.className =
-      'card group bg-white border rounded-xl overflow-hidden relative flex flex-col transition-all hover:-translate-y-0.5 hover:shadow-md ' +
-      (isProcessing ? 'border-accent shadow-[0_0_0_3px_rgba(59,130,246,.15)]' :
-       isDone ? 'border-emerald-200 cursor-pointer' :
-       isError ? 'border-red-200' : 'border-line');
+    card.className = 'card group bg-white dark:bg-slate-900 border rounded-xl overflow-hidden relative flex flex-col transition-all hover:-translate-y-0.5 hover:shadow-md ' +
+      (isProcessing ? 'processing border-accent shadow-[0_0_0_3px_rgba(59,130,246,.15)]' :
+       isDone ? 'done border-emerald-200 dark:border-emerald-800' :
+       isError ? 'error border-red-200 dark:border-red-800' : 'pending border-line dark:border-slate-800');
     card.dataset.id = it.id;
+    card.dataset.state = it.state;
 
-    const displayUrl = isDone && it.url ? it.url : it.thumbUrl;
-    const imgTag = displayUrl ? `<img src="${displayUrl}" alt="" loading="lazy" class="max-w-full max-h-full object-contain block">` : '';
+    const imgSrc = isDone && it.transparentFramedUrl ? it.transparentFramedUrl : (it.thumbUrl || '');
+    const imgTag = imgSrc ? `<img src="${imgSrc}" alt="" loading="lazy" class="max-w-full max-h-full object-contain block">` : '';
+
+    const thumbStyle = (isDone && currentColor) ? `style="background:${currentColor}"` : '';
 
     let badgeHTML = '';
-    if (it.state === 'pending')    badgeHTML = `<span class="badge pending">Ready</span>`;
-    else if (it.state === 'done')  badgeHTML = `<span class="badge done">Done</span>`;
-    else if (it.state === 'error') badgeHTML = `<span class="badge error">Error</span>`;
+    if (it.state === 'pending')    badgeHTML = `<span class="badge pending">${t('readyBadge')}</span>`;
+    else if (it.state === 'done')  badgeHTML = `<span class="badge done">${t('doneBadge')}</span>`;
+    else if (it.state === 'error') badgeHTML = `<span class="badge error">${t('errorBadge')}</span>`;
 
     let focusBadge = '';
-    if (isDone && it.faceDetected){
-      focusBadge = `<span class="badge focus">Face ✓ · ${it.zoomAmount.toFixed(1)}×</span>`;
-    }
+    if (isDone && it.faceDetected) focusBadge = `<span class="badge focus">${t('faceBadge')} · ${it.zoomAmount.toFixed(1)}×</span>`;
     let manualBadge = '';
-    if (isDone && it.manualCrop){
-      manualBadge = `<span class="badge manual">Cropped</span>`;
-    }
+    if (isDone && it.manualCrop) manualBadge = `<span class="badge manual">${t('croppedBadge')}</span>`;
 
     const editHint = isDone ? `
       <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-ink/80 text-white px-3 py-1.5 rounded-full text-[0.72rem] font-semibold opacity-0 transition-opacity pointer-events-none z-[5] flex items-center gap-1.5 group-hover:opacity-100">
-        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-        </svg>
-        Edit crop
+        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        ${t('editCrop')}
       </div>` : '';
 
     const origKB = (it.file.size/1024).toFixed(0);
-    const sizeLine = isDone
-      ? `<span class="text-[0.7rem] text-ink-muted">${origKB} KB → <span class="text-ok font-semibold">${it.sizeKB.toFixed(1)} KB</span></span>`
-      : `<span class="text-[0.7rem] text-ink-muted">${origKB} KB</span>`;
+    const sizeLine = (isDone && it.sizeKB)
+      ? `<span class="text-[0.7rem] text-ink-muted dark:text-slate-400">${origKB} KB → <span class="text-ok font-semibold">${it.sizeKB.toFixed(1)} KB</span></span>`
+      : `<span class="text-[0.7rem] text-ink-muted dark:text-slate-400">${origKB} KB</span>`;
 
     const errLine = isError && it.error
-      ? `<span class="text-[0.68rem] text-danger whitespace-nowrap overflow-hidden text-ellipsis" title="${esc(it.error)}">${esc(it.error)}</span>` : '';
+      ? `<span class="text-[0.68rem] text-danger whitespace-nowrap overflow-hidden text-ellipsis">${esc(it.error)}</span>` : '';
 
     const overlay = `
       <div class="overlay absolute inset-0 bg-ink/55 backdrop-blur-sm ${isProcessing ? 'flex' : 'hidden'} flex-col items-center justify-center text-white p-4 gap-2.5 z-[2]">
@@ -980,186 +1128,238 @@ function render(){
         <div class="w-4/5 h-1 rounded-full bg-white/25 overflow-hidden">
           <div class="bar-fill h-full w-0 rounded-full bg-gradient-to-r from-accent to-violet-500 transition-[width] duration-200" style="width:${it.progress || 0}%"></div>
         </div>
-        <div class="stage text-[0.72rem] font-medium text-center opacity-90 leading-snug max-w-[90%]">${esc(it.stage || 'Working…')}</div>
+        <div class="stage text-[0.72rem] font-medium text-center opacity-90 leading-snug max-w-[90%]">${esc(it.stage || '')}</div>
       </div>`;
 
+    const dlBtn = isDone ? `
+      <button class="card-download-btn absolute top-2 right-10 w-7 h-7 rounded-full bg-accent text-white border-none cursor-pointer flex items-center justify-center z-[6] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-accent-hover shadow-lg" title="${t('download')}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>` : '';
+
     card.innerHTML = `
-      <div class="thumb w-full aspect-[4/5] relative checker-soft flex items-center justify-center overflow-hidden">
-        ${imgTag}
-        ${overlay}
-        ${editHint}
+      <div class="thumb w-full aspect-[4/5] relative checker-soft flex items-center justify-center overflow-hidden" ${thumbStyle}>
+        ${imgTag}${overlay}${editHint}
       </div>
-      ${badgeHTML}
-      ${focusBadge}
-      ${manualBadge}
-      <button class="remove-btn absolute top-2 right-2 w-6 h-6 rounded-full bg-ink/60 text-white border-none cursor-pointer flex items-center justify-center text-sm leading-none p-0 z-[6] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-danger" title="Remove">×</button>
-      <div class="px-2.5 py-2 border-t border-line flex flex-col gap-0.5 bg-white">
-        <span class="text-[0.75rem] font-medium whitespace-nowrap overflow-hidden text-ellipsis text-ink" title="${esc(it.outputName || it.file.name)}">${esc(it.outputName || it.file.name)}</span>
-        ${sizeLine}
-        ${errLine}
+      ${badgeHTML}${focusBadge}${manualBadge}
+      <button class="remove-btn absolute top-2 right-2 w-7 h-7 rounded-full bg-ink/60 text-white border-none cursor-pointer flex items-center justify-center text-sm leading-none p-0 z-[6] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-danger" title="Remove">×</button>
+      ${dlBtn}
+      <div class="px-2.5 py-2 border-t border-line dark:border-slate-800 flex flex-col gap-0.5 bg-white dark:bg-slate-900">
+        <span class="text-[0.75rem] font-medium whitespace-nowrap overflow-hidden text-ellipsis text-ink dark:text-slate-100" title="${esc(it.outputName || it.file.name)}">${esc(it.outputName || it.file.name)}</span>
+        ${sizeLine}${errLine}
       </div>`;
 
     card.querySelector('.remove-btn').addEventListener('click', (e) => {
       e.stopPropagation();
       if (it.thumbUrl) URL.revokeObjectURL(it.thumbUrl);
-      if (it.url) URL.revokeObjectURL(it.url);
+      if (it.transparentFramedUrl) URL.revokeObjectURL(it.transparentFramedUrl);
+      if (it._cropBgUrl) URL.revokeObjectURL(it._cropBgUrl);
       items = items.filter(x => x !== it);
       render(); updateButtons();
     });
+
+    const dl = card.querySelector('.card-download-btn');
+    if (dl) dl.addEventListener('click', async (e) => { e.stopPropagation(); await downloadOne(it); });
+
     card.addEventListener('click', (e) => {
-      if (e.target.closest('.remove-btn')) return;
-      if (it.state === 'done' && it.transparentCanvas){
-        openCropModal(it);
-      }
+      if (e.target.closest('.remove-btn') || e.target.closest('.card-download-btn')) return;
+      if (it.state === 'done' && it.transparentCanvas) openCropModal(it);
     });
     library.appendChild(card);
   });
 }
 
-/* =================================================================
-   CROP MODAL
-   ================================================================= */
+/* ==== DOWNLOAD ==== */
+async function getFinalBlob(item){
+  const fmt = getOutputFormat();
+  const color = getCurrentColor();
+  const effectiveColor = color || (fmt.opaque ? '#ffffff' : null);
+  const tMin = (parseInt(sizeMin.value)||20)*1024;
+  const tMax = (parseInt(sizeMax.value)||50)*1024;
+  const composed = compositeOnColor(item.transparentFramed, effectiveColor);
+  return await encodeToTarget(composed, tMin, tMax, fmt.mime);
+}
+function saveBlob(blob, filename){
+  if (!blob || !blob.size) return false;
+  try{
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.rel = 'noopener';
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { try { a.remove(); }catch{} URL.revokeObjectURL(url); }, 60000);
+    return true;
+  }catch(e){ return false; }
+}
+async function downloadOne(item){
+  if (!item.transparentFramed) return;
+  const fmt = getOutputFormat();
+  const blob = await getFinalBlob(item);
+  if (!blob){ setStatus('❌ Download failed.', 'err'); return; }
+  const name = item.file.name.replace(/\.[^.]+$/, '') + '.' + fmt.ext;
+  saveBlob(blob, name);
+  setStatus(`✅ ${name}`, 'ok');
+}
+downloadZipBtn.addEventListener('click', async () => {
+  const ready = items.filter(it => it.state === 'done' && it.transparentFramed);
+  if (!ready.length){ setStatus(t('nothingToDownload'),'err'); return; }
+  if (typeof JSZip === 'undefined'){ setStatus('❌ ZIP library failed.','err'); return; }
+  setStatus(t('buildingZip'));
+  try {
+    const fmt = getOutputFormat();
+    const zip = new JSZip();
+    const used = new Set();
+    for (const it of ready){
+      const blob = await getFinalBlob(it);
+      if (!blob) continue;
+      let name = it.file.name.replace(/\.[^.]+$/, '') + '.' + fmt.ext;
+      if (used.has(name)){
+        const b = name.replace(/\.[^.]+$/, '');
+        const ext = name.split('.').pop();
+        let n = 2;
+        while (used.has(`${b}_${n}.${ext}`)) n++;
+        name = `${b}_${n}.${ext}`;
+      }
+      used.add(name);
+      zip.file(name, blob);
+    }
+    const zipBlob = await zip.generateAsync({ type:'blob', compression:'DEFLATE', compressionOptions:{ level:6 } });
+    if (!zipBlob || !zipBlob.size) throw new Error('ZIP empty');
+    const ok = saveBlob(zipBlob, 'readychobi-photos.zip');
+    if (ok) setStatus(t('zipDone', (zipBlob.size/1024).toFixed(1)),'ok');
+    else setStatus(t('zipFail'),'err');
+  } catch(e){ setStatus(t('zipFail'),'err'); }
+});
+outputFormat.addEventListener('change', () => {
+  const fmt = getOutputFormat();
+  items.forEach(it => { if (it.state !== 'done') it.outputName = it.file.name.replace(/\.[^.]+$/, '') + '.' + fmt.ext; });
+  render();
+});
+
+/* ==== CROP MODAL ==== */
 function openCropModal(item){
   if (item.state !== 'done' || !item.transparentCanvas) return;
-
   const cw = item.transparentCanvas.width;
   const ch = item.transparentCanvas.height;
-
   const maxW = Math.min(620, window.innerWidth - 80);
   const maxH = Math.min(520, window.innerHeight - 260);
   const scale = Math.min(maxW / cw, maxH / ch, 1);
   const stageW = Math.round(cw * scale);
   const stageH = Math.round(ch * scale);
 
-  cropStage.style.width  = stageW + 'px';
+  cropStage.style.width = stageW + 'px';
   cropStage.style.height = stageH + 'px';
-  const bgColor = getCurrentColor() || '#ffffff';
-  cropStage.style.background = bgColor;
+  cropStage.style.background = getCurrentColor() || '#ffffff';
 
-  cropBgImg.src = item.transparentCanvas.toDataURL('image/png');
-  cropBgImg.width  = stageW;
-  cropBgImg.height = stageH;
+  item.transparentCanvas.toBlob(blob => {
+    if (item._cropBgUrl) URL.revokeObjectURL(item._cropBgUrl);
+    item._cropBgUrl = URL.createObjectURL(blob);
+    cropBgImg.src = item._cropBgUrl;
+  }, 'image/png');
+  cropBgImg.width = stageW; cropBgImg.height = stageH;
 
   const aspect = item.targetW / item.targetH;
-
   let rect = {
     x: (item.cropLeft || 0) * scale,
     y: (item.cropTop  || 0) * scale,
     w: (item.cropW    || cw) * scale,
     h: (item.cropH    || ch) * scale,
   };
-
   rect.w = Math.max(40, Math.min(rect.w, stageW));
   rect.h = Math.max(40, Math.min(rect.h, stageH));
   rect.x = Math.max(0, Math.min(stageW - rect.w, rect.x));
   rect.y = Math.max(0, Math.min(stageH - rect.h, rect.y));
 
-  cropState = {
-    item, cw, ch, scale, stageW, stageH, aspect,
-    rect, minSize: 40,
-    dragging: null,
-    startX: 0, startY: 0,
-    startRect: null,
-  };
-
-  updateCropRectEl();
-  cropModal.classList.remove('hidden');
-  cropModal.classList.add('flex');
+  cropState = { item, cw, ch, scale, stageW, stageH, aspect, rect, minSize: 40,
+    dragging: null, startX: 0, startY: 0, startRect: null,
+    history: [{ ...rect }], historyIdx: 0 };
+  updateCropRectEl(); updateUndoRedoButtons();
+  cropModal.classList.remove('hidden'); cropModal.classList.add('flex');
 }
-
-function closeCropModal(){
-  cropModal.classList.add('hidden');
-  cropModal.classList.remove('flex');
-  cropState = null;
-}
-
+function closeCropModal(){ cropModal.classList.add('hidden'); cropModal.classList.remove('flex'); cropState = null; }
 function updateCropRectEl(){
   if (!cropState) return;
   const r = cropState.rect;
-  cropRect.style.left   = r.x + 'px';
-  cropRect.style.top    = r.y + 'px';
-  cropRect.style.width  = r.w + 'px';
-  cropRect.style.height = r.h + 'px';
-
+  cropRect.style.left = r.x + 'px'; cropRect.style.top = r.y + 'px';
+  cropRect.style.width = r.w + 'px'; cropRect.style.height = r.h + 'px';
   const srcW = Math.round(r.w / cropState.scale);
   const srcH = Math.round(r.h / cropState.scale);
-  cropDims.textContent = `Crop region: ${srcW}×${srcH} px  →  Output: ${cropState.item.targetW}×${cropState.item.targetH} px`;
+  cropDims.textContent = `${srcW}×${srcH} px → ${cropState.item.targetW}×${cropState.item.targetH} px`;
 }
-
+function pushCropHistory(){
+  if (!cropState) return;
+  const h = cropState.history.slice(0, cropState.historyIdx + 1);
+  h.push({ ...cropState.rect });
+  if (h.length > 30) h.shift();
+  cropState.history = h; cropState.historyIdx = h.length - 1;
+  updateUndoRedoButtons();
+}
+function updateUndoRedoButtons(){
+  if (!cropState) return;
+  cropUndo.disabled = cropState.historyIdx <= 0;
+  cropRedo.disabled = cropState.historyIdx >= cropState.history.length - 1;
+}
+cropUndo.addEventListener('click', () => {
+  if (!cropState || cropState.historyIdx <= 0) return;
+  cropState.historyIdx--;
+  cropState.rect = { ...cropState.history[cropState.historyIdx] };
+  updateCropRectEl(); updateUndoRedoButtons();
+});
+cropRedo.addEventListener('click', () => {
+  if (!cropState || cropState.historyIdx >= cropState.history.length - 1) return;
+  cropState.historyIdx++;
+  cropState.rect = { ...cropState.history[cropState.historyIdx] };
+  updateCropRectEl(); updateUndoRedoButtons();
+});
 cropModalClose.addEventListener('click', closeCropModal);
 cropCancel.addEventListener('click', closeCropModal);
-cropModal.addEventListener('click', e => {
-  if (e.target === cropModal) closeCropModal();
-});
+cropModal.addEventListener('click', e => { if (e.target === cropModal) closeCropModal(); });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && !cropModal.classList.contains('hidden')) closeCropModal();
+  if (!cropModal.classList.contains('hidden')){
+    if (e.key === 'Escape') closeCropModal();
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey){ e.preventDefault(); cropUndo.click(); }
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))){ e.preventDefault(); cropRedo.click(); }
+  }
 });
-
 cropRect.addEventListener('pointerdown', e => {
   if (!cropState) return;
   e.preventDefault(); e.stopPropagation();
-  const handle = e.target.dataset.h;
-  const mode = handle || 'move';
-  cropState.dragging = mode;
-  cropState.startX = e.clientX;
-  cropState.startY = e.clientY;
+  cropState.dragging = e.target.dataset.h || 'move';
+  cropState.startX = e.clientX; cropState.startY = e.clientY;
   cropState.startRect = { ...cropState.rect };
   cropRect.setPointerCapture(e.pointerId);
 });
-
 cropRect.addEventListener('pointermove', e => {
   if (!cropState || !cropState.dragging) return;
-  const dx = e.clientX - cropState.startX;
-  const dy = e.clientY - cropState.startY;
+  const dx = e.clientX - cropState.startX, dy = e.clientY - cropState.startY;
   const sr = cropState.startRect;
   const { stageW, stageH, aspect, minSize } = cropState;
-
   let r = { ...sr };
-
   if (cropState.dragging === 'move'){
     r.x = Math.max(0, Math.min(stageW - r.w, sr.x + dx));
     r.y = Math.max(0, Math.min(stageH - r.h, sr.y + dy));
   } else {
     const h = cropState.dragging;
     let newW = sr.w, newH = sr.h;
-
-    if (h === 'se'){
-      newW = sr.w + dx;
-      newH = newW / aspect;
-      if (sr.x + newW > stageW){ newW = stageW - sr.x; newH = newW / aspect; }
-      if (sr.y + newH > stageH){ newH = stageH - sr.y; newW = newH * aspect; }
-    } else if (h === 'nw'){
-      newW = sr.w - dx;
-      newH = newW / aspect;
-      if (sr.x + sr.w - newW < 0){ newW = sr.x + sr.w; newH = newW / aspect; }
-      if (sr.y + sr.h - newH < 0){ newH = sr.y + sr.h; newW = newH * aspect; }
-      r.x = sr.x + sr.w - newW;
-      r.y = sr.y + sr.h - newH;
-    } else if (h === 'ne'){
-      newW = sr.w + dx;
-      newH = newW / aspect;
-      if (sr.x + newW > stageW){ newW = stageW - sr.x; newH = newW / aspect; }
-      if (sr.y + sr.h - newH < 0){ newH = sr.y + sr.h; newW = newH * aspect; }
-      r.y = sr.y + sr.h - newH;
-    } else if (h === 'sw'){
-      newW = sr.w - dx;
-      newH = newW / aspect;
-      if (sr.x + sr.w - newW < 0){ newW = sr.x + sr.w; newH = newW / aspect; }
-      if (sr.y + newH > stageH){ newH = stageH - sr.y; newW = newH * aspect; }
-      r.x = sr.x + sr.w - newW;
-    }
-
-    if (newW < minSize){ newW = minSize; newH = newW / aspect; }
-
-    r.w = newW;
-    r.h = newH;
+    if (h === 'se'){ newW = sr.w+dx; newH = newW/aspect;
+      if (sr.x+newW>stageW){ newW=stageW-sr.x; newH=newW/aspect; }
+      if (sr.y+newH>stageH){ newH=stageH-sr.y; newW=newH*aspect; } }
+    else if (h === 'nw'){ newW = sr.w-dx; newH = newW/aspect;
+      if (sr.x+sr.w-newW<0){ newW=sr.x+sr.w; newH=newW/aspect; }
+      if (sr.y+sr.h-newH<0){ newH=sr.y+sr.h; newW=newH*aspect; }
+      r.x = sr.x+sr.w-newW; r.y = sr.y+sr.h-newH; }
+    else if (h === 'ne'){ newW = sr.w+dx; newH = newW/aspect;
+      if (sr.x+newW>stageW){ newW=stageW-sr.x; newH=newW/aspect; }
+      if (sr.y+sr.h-newH<0){ newH=sr.y+sr.h; newW=newH*aspect; }
+      r.y = sr.y+sr.h-newH; }
+    else if (h === 'sw'){ newW = sr.w-dx; newH = newW/aspect;
+      if (sr.x+sr.w-newW<0){ newW=sr.x+sr.w; newH=newW/aspect; }
+      if (sr.y+newH>stageH){ newH=stageH-sr.y; newW=newH*aspect; }
+      r.x = sr.x+sr.w-newW; }
+    if (newW < minSize){ newW = minSize; newH = newW/aspect; }
+    r.w = newW; r.h = newH;
   }
-
-  cropState.rect = r;
-  updateCropRectEl();
+  cropState.rect = r; updateCropRectEl();
 });
-
-function endDrag(){ if (cropState) cropState.dragging = null; }
+function endDrag(){ if (cropState && cropState.dragging){ cropState.dragging = null; pushCropHistory(); } }
 cropRect.addEventListener('pointerup', endDrag);
 cropRect.addEventListener('pointercancel', endDrag);
 
@@ -1170,126 +1370,121 @@ cropReset.addEventListener('click', () => {
   const def = computeDefaultCrop(item.transparentCanvas, faceBox, item.targetW, item.targetH);
   const s = cropState.scale;
   cropState.rect = {
-    x: Math.max(0, def.left * s),
-    y: Math.max(0, def.top * s),
-    w: Math.min(cropState.stageW, def.w * s),
-    h: Math.min(cropState.stageH, def.h * s),
+    x: Math.max(0, def.left*s), y: Math.max(0, def.top*s),
+    w: Math.min(cropState.stageW, def.w*s), h: Math.min(cropState.stageH, def.h*s),
   };
   cropState.rect.x = Math.max(0, Math.min(cropState.stageW - cropState.rect.w, cropState.rect.x));
   cropState.rect.y = Math.max(0, Math.min(cropState.stageH - cropState.rect.h, cropState.rect.y));
-  updateCropRectEl();
+  updateCropRectEl(); pushCropHistory();
 });
-
 cropApply.addEventListener('click', async () => {
   if (!cropState) return;
-  const item = cropState.item;
-  const s = cropState.scale;
-  const r = cropState.rect;
-
-  const cropLeft = r.x / s;
-  const cropTop  = r.y / s;
-  const cropW    = r.w / s;
-  const cropH    = r.h / s;
-
-  item.cropLeft = cropLeft;
-  item.cropTop  = cropTop;
-  item.cropW    = cropW;
-  item.cropH    = cropH;
+  const item = cropState.item, s = cropState.scale, r = cropState.rect;
+  item.cropLeft = r.x/s; item.cropTop = r.y/s; item.cropW = r.w/s; item.cropH = r.h/s;
   item.manualCrop = true;
-
-  item.transparentFramed = cropToTarget(
-    item.transparentCanvas,
-    { left: cropLeft, top: cropTop, w: cropW, h: cropH },
-    item.targetW, item.targetH
-  );
-
+  item.transparentFramed = cropToTarget(item.transparentCanvas,
+    { left: item.cropLeft, top: item.cropTop, w: item.cropW, h: item.cropH },
+    item.targetW, item.targetH);
+  const previewBlob = await new Promise(res => item.transparentFramed.toBlob(res, 'image/png'));
+  if (item.transparentFramedUrl) URL.revokeObjectURL(item.transparentFramedUrl);
+  item.transparentFramedUrl = previewBlob ? URL.createObjectURL(previewBlob) : '';
   closeCropModal();
-  await reencodeSingle(item);
-});
-
-/* ---------- Download ---------- */
-function saveBlob(blob, filename){
-  if (!blob || !blob.size) return false;
-  try{
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename; a.rel = 'noopener';
-    document.body.appendChild(a); a.click();
-    setTimeout(() => {
-      try { a.remove(); }catch{}
-      URL.revokeObjectURL(url);
-    }, 60000);
-    return true;
-  }catch(e){ console.error('saveBlob error:', e); return false; }
-}
-
-downloadIndividualBtn.addEventListener('click', () => {
-  const ready = items.filter(it => it.state === 'done' && it.blob && it.blob.size > 0);
-  if (!ready.length){ setStatus('Nothing to download — process first.', 'err'); return; }
-  clearTimeout(colorDebounce);
-  let ok = 0, fail = 0;
-  ready.forEach((it, i) => {
-    setTimeout(() => {
-      const success = saveBlob(it.blob, it.outputName);
-      if (success) ok++; else fail++;
-      if (ok + fail === ready.length){
-        if (fail === 0) setStatus(`✅ Downloaded ${ok} file(s).`, 'ok');
-        else setStatus(`⚠ Downloaded ${ok}, failed ${fail}.`, 'err');
-      }
-    }, i * 300);
-  });
-  setStatus(`Downloading ${ready.length} file(s)…`);
-});
-
-downloadZipBtn.addEventListener('click', async () => {
-  const ready = items.filter(it => it.state === 'done' && it.blob && it.blob.size > 0);
-  if (!ready.length){ setStatus('Nothing to download — process first.', 'err'); return; }
-  if (typeof JSZip === 'undefined'){
-    setStatus('❌ ZIP library failed to load. Use "Download Individually".', 'err');
-    return;
-  }
-  clearTimeout(colorDebounce);
-  setStatus('Building ZIP…');
-  try{
-    const zip = new JSZip();
-    const used = new Set();
-    for (const it of ready){
-      let name = it.outputName;
-      if (used.has(name)){
-        const b = name.replace(/\.[^.]+$/, '');
-        const ext = name.split('.').pop();
-        let n = 2;
-        while (used.has(`${b}_${n}.${ext}`)) n++;
-        name = `${b}_${n}.${ext}`;
-      }
-      used.add(name);
-      zip.file(name, it.blob);
-    }
-    const zipBlob = await zip.generateAsync({ type:'blob', compression:'DEFLATE', compressionOptions:{ level:6 } });
-    if (!zipBlob || !zipBlob.size) throw new Error('ZIP produced no data');
-    const ok = saveBlob(zipBlob, 'processed-images.zip');
-    if (ok) setStatus(`✅ ZIP downloaded (${(zipBlob.size/1024).toFixed(1)} KB).`, 'ok');
-    else setStatus('❌ Could not trigger ZIP download.', 'err');
-  }catch(e){
-    console.error('ZIP failed:', e);
-    setStatus('❌ ZIP failed: ' + e.message, 'err');
-  }
-});
-
-/* ---------- Format change ---------- */
-outputFormat.addEventListener('change', () => {
   const fmt = getOutputFormat();
-  items.forEach(it => {
-    if (it.state !== 'done'){
-      it.outputName = it.file.name.replace(/\.[^.]+$/, '') + '.' + fmt.ext;
-    }
-  });
+  const color = getCurrentColor();
+  const effectiveColor = color || (fmt.opaque ? '#ffffff' : null);
+  const tMin = (parseInt(sizeMin.value)||20)*1024, tMax = (parseInt(sizeMax.value)||50)*1024;
+  const composed = compositeOnColor(item.transparentFramed, effectiveColor);
+  const blob = await encodeToTarget(composed, tMin, tMax, fmt.mime);
+  if (blob) item.sizeKB = blob.size / 1024;
   render();
 });
 
-/* ---------- Init ---------- */
+/* ==== PRESETS ==== */
+function loadPresets(){ try { return JSON.parse(localStorage.getItem('bip-presets') || '{}'); } catch(e){ return {}; } }
+function savePresets(p){ try { localStorage.setItem('bip-presets', JSON.stringify(p)); } catch(e){} }
+function refreshPresetDropdown(){
+  const presets = loadPresets();
+  presetSelect.innerHTML = '<option value="">—</option>';
+  Object.keys(presets).forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    presetSelect.appendChild(opt);
+  });
+}
+presetSelect.addEventListener('change', () => {
+  const name = presetSelect.value; if (!name) return;
+  const p = loadPresets()[name]; if (!p) return;
+  if (p.cropPreset) cropPreset.value = p.cropPreset;
+  if (p.customCropW) customCropW.value = p.customCropW;
+  if (p.customCropH) customCropH.value = p.customCropH;
+  if (p.autoFocus !== undefined) autoFocus.checked = p.autoFocus;
+  if (p.autoEnhance !== undefined) autoEnhance.checked = p.autoEnhance;
+  if (p.trimEdges !== undefined) trimEdges.checked = p.trimEdges;
+  if (p.outputFormat) outputFormat.value = p.outputFormat;
+  if (p.sizeMin) sizeMin.value = p.sizeMin;
+  if (p.sizeMax) sizeMax.value = p.sizeMax;
+  if (p.bgColor){
+    bgColorInput.value = p.bgColor;
+    delete bgColorInput.dataset.transparent;
+    colorHex.textContent = p.bgColor.toUpperCase();
+    colorPreview.style.background = p.bgColor;
+    document.querySelectorAll('.swatch').forEach(s => s.classList.toggle('active', s.dataset.color === p.bgColor));
+  }
+  customCropGroup.style.display = cropPreset.value === 'custom' ? 'block' : 'none';
+  onColorChange();
+  setStatus(t('presetLoaded', name), 'ok');
+});
+savePresetBtn.addEventListener('click', () => {
+  presetName.value = '';
+  presetModal.classList.remove('hidden'); presetModal.classList.add('flex');
+  setTimeout(() => presetName.focus(), 50);
+});
+presetCancel.addEventListener('click', () => { presetModal.classList.add('hidden'); presetModal.classList.remove('flex'); });
+presetSave.addEventListener('click', () => {
+  const name = presetName.value.trim(); if (!name) return;
+  const presets = loadPresets();
+  presets[name] = {
+    cropPreset: cropPreset.value, customCropW: customCropW.value, customCropH: customCropH.value,
+    autoFocus: autoFocus.checked, autoEnhance: autoEnhance.checked, trimEdges: trimEdges.checked,
+    outputFormat: outputFormat.value, sizeMin: sizeMin.value, sizeMax: sizeMax.value,
+    bgColor: getCurrentColor() || '#ACC0FB',
+  };
+  savePresets(presets); refreshPresetDropdown(); presetSelect.value = name;
+  presetModal.classList.add('hidden'); presetModal.classList.remove('flex');
+  setStatus(t('presetSaved', name), 'ok');
+});
+deletePresetBtn.addEventListener('click', () => {
+  const name = presetSelect.value;
+  if (!name){ setStatus(t('selectPresetToDelete'),'err'); return; }
+  if (!confirm(t('confirmDelete', name))) return;
+  const presets = loadPresets(); delete presets[name]; savePresets(presets);
+  refreshPresetDropdown(); setStatus(t('presetDeleted', name));
+});
+
+/* ==== INIT ==== */
+try { const saved = localStorage.getItem('bip-lang'); if (saved === 'bn' || saved === 'en') currentLang = saved; } catch(e){}
+refreshPresetDropdown();
+applyLang(currentLang);
 render();
 updateButtons();
+
+const startPreload = () => {
+  if (currentPillState === 'ready' || currentPillState === 'loading') return;
+  setPill('loading');
+  showAiOverlay(0);
+  ensureAiLoaded()
+    .then(() => {
+      setPill('ready');
+      hideAiOverlay();
+      modelBytesByKey.clear();
+    })
+    .catch(() => {
+      setPill('fail');
+      hideAiOverlay();
+    });
+};
+if ('requestIdleCallback' in window) requestIdleCallback(startPreload, { timeout: 2000 });
+else setTimeout(startPreload, 1200);
 </script>
 
 </body>
