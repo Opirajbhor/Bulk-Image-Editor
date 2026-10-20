@@ -4,358 +4,378 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ReadyChobi</title>
+<link rel="manifest" id="pwaManifest">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232563eb'/><text x='50' y='70' font-size='60' text-anchor='middle' fill='white' font-weight='bold' font-family='sans-serif'>R</text></svg>">
+
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.2/dist/jszip.min.js"></script>
+
 <script>
   tailwind.config = {
     darkMode: 'class',
     theme: {
       extend: {
-        colors: {
-          accent: { DEFAULT: '#3b82f6', hover: '#2563eb', soft: '#eff6ff' },
-          ink:    { DEFAULT: '#0f172a', 2: '#334155', muted: '#64748b' },
-          line:   { DEFAULT: '#e2e8f0', 2: '#cbd5e1' },
-          ok: '#10b981', warn: '#f59e0b', danger: '#ef4444',
-        },
-        keyframes: {
-          pulse2: { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.35 } },
-          spin2:  { to: { transform: 'rotate(360deg)' } },
-          slideDown: { from: { transform: 'translateY(-100%)', opacity: 0 }, to: { transform: 'translateY(0)', opacity: 1 } },
-        },
-        animation: {
-          'pulse-soft': 'pulse2 1.2s ease-in-out infinite',
-          'spin-fast':  'spin2 0.8s linear infinite',
-          'slide-down': 'slideDown 0.35s ease-out',
-        },
+        colors: { brand: { DEFAULT: '#2563eb', hover: '#1d4ed8', soft: '#eff6ff' } },
+        fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+        boxShadow: {
+          'soft': '0 1px 2px rgba(0,0,0,0.05), 0 4px 6px -1px rgba(0,0,0,0.02)',
+          'lift': '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
+        }
       },
     },
   };
 </script>
+
 <style>
-  .checker {
-    background-image:
-      linear-gradient(45deg, #cbd5e1 25%, transparent 25%),
-      linear-gradient(-45deg, #cbd5e1 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, #cbd5e1 75%),
-      linear-gradient(-45deg, transparent 75%, #cbd5e1 75%);
-    background-size: 10px 10px;
-    background-position: 0 0, 0 5px, 5px -5px, -5px 0;
-    background-color: #fff;
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  body { font-family: 'Inter', sans-serif; }
+  
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+  .dark ::-webkit-scrollbar-thumb { background: #475569; }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
   }
-  .checker-soft { background-image: repeating-conic-gradient(#eef2f7 0 25%, #f8fafc 0 50%); background-size: 16px 16px; }
-  .dark .checker-soft { background-image: repeating-conic-gradient(#1e293b 0 25%, #0f172a 0 50%); }
-  .thirds::before {
-    content: ''; position: absolute; inset: 0; pointer-events: none;
-    background:
-      linear-gradient(to right, rgba(255,255,255,.35) 1px, transparent 1px) 33.33% 0 / 33.33% 100% no-repeat,
-      linear-gradient(to right, rgba(255,255,255,.35) 1px, transparent 1px) 66.66% 0 / 33.33% 100% no-repeat,
-      linear-gradient(to bottom, rgba(255,255,255,.35) 1px, transparent 1px) 0 33.33% / 100% 33.33% no-repeat,
-      linear-gradient(to bottom, rgba(255,255,255,.35) 1px, transparent 1px) 0 66.66% / 100% 33.33% no-repeat;
+  .skeleton {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite linear;
   }
-  .scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
-  .scroll-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-  .dark .scroll-thin::-webkit-scrollbar-thumb { background: #475569; }
-  .scroll-thin::-webkit-scrollbar-track { background: transparent; }
+  .dark .skeleton {
+    background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+    background-size: 200% 100%;
+  }
+
+  @keyframes glowPulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(37, 99, 235, 0.3); }
+    50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.5); }
+  }
+  .processing-glow { animation: glowPulse 2s ease-in-out infinite; }
+
+  @keyframes orbit {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .orbit-ring { animation: orbit 1.5s linear infinite; }
+  .orbit-ring-slow { animation: orbit 3s linear infinite reverse; }
+
   input[type="color"] { -webkit-appearance: none; border: none; padding: 0; background: none; cursor: pointer; }
   input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
   input[type="color"]::-webkit-color-swatch { border: none; border-radius: 4px; }
-  .badge {
-    position: absolute; padding: 0.16rem 0.5rem; border-radius: 999px;
-    font-size: 0.6rem; font-weight: 800; text-transform: uppercase;
-    letter-spacing: 0.05em; z-index: 3; color: #fff;
-  }
-  .badge.pending  { top: 0.5rem; left: 0.5rem; background: rgba(148,163,184,.95); }
-  .badge.done     { top: 0.5rem; left: 0.5rem; background: rgba(16,185,129,.95); }
-  .badge.error    { top: 0.5rem; left: 0.5rem; background: rgba(239,68,68,.95); }
-  .badge.focus    { bottom: 0.5rem; left: 0.5rem; top: auto; background: rgba(139,92,246,.95); }
-  .badge.manual   { top: 0.5rem; right: 0.5rem; left: auto; background: rgba(59,130,246,.95); }
-  .swatch.active { border-color: #3b82f6; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #3b82f6; }
-  .dark .swatch.active { box-shadow: 0 0 0 2px #0f172a, 0 0 0 4px #3b82f6; }
 
-  #aiOverlay { animation: slideDown .35s ease-out; }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  .toast { animation: slideIn 0.3s ease-out forwards; }
 
-  @keyframes aiPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,.5); }
-    50%      { box-shadow: 0 0 0 10px rgba(59,130,246,0); }
+  input[type="range"] { -webkit-appearance: none; appearance: none; background: transparent; cursor: pointer; }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px; background: rgba(148,163,184,.3); border-radius: 4px;
   }
-  .ai-pulse { animation: aiPulse 2s ease-out infinite; }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 14px; border-radius: 50%; background: #2563eb;
+    margin-top: -5px; box-shadow: 0 1px 3px rgba(0,0,0,.2); border: 2px solid white;
+  }
+  .dark input[type="range"]::-webkit-slider-thumb { border-color: #0f172a; }
+
+  .checker-soft { background-image: repeating-conic-gradient(#eef2f7 0 25%, #f8fafc 0 50%); background-size: 16px 16px; }
+  .dark .checker-soft { background-image: repeating-conic-gradient(#1e293b 0 25%, #0f172a 0 50%); }
 </style>
 </head>
-<body class="min-h-screen lg:h-screen lg:overflow-hidden bg-slate-100 dark:bg-slate-950 text-ink dark:text-slate-100 antialiased flex flex-col">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 h-screen overflow-hidden flex flex-col antialiased selection:bg-brand/20">
 
-<div id="aiOverlay" class="fixed top-0 left-0 right-0 z-[300] hidden justify-center pt-4 px-4 pointer-events-none">
-  <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-line dark:border-slate-800 px-5 py-4 w-full max-w-sm">
-    <div class="flex items-center gap-3 mb-3">
-      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-accent to-violet-500 flex items-center justify-center shrink-0 ai-pulse">
-        <div class="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin-fast"></div>
-      </div>
-      <div class="flex-1 min-w-0">
-        <div class="text-sm font-bold text-ink dark:text-slate-100" id="aiOverlayTitle">Downloading AI model</div>
-        <div class="text-[0.7rem] text-ink-muted dark:text-slate-400" id="aiOverlaySubtitle">RMBG-1.4 · first-time setup only</div>
-      </div>
-      <div class="text-xl font-extrabold tabular-nums text-accent shrink-0" id="aiOverlayPct">0%</div>
-    </div>
-    <div class="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-      <div id="aiOverlayBar" class="h-full w-0 bg-gradient-to-r from-accent to-violet-500 rounded-full transition-[width] duration-300"></div>
-    </div>
-    <div class="text-[0.68rem] text-ink-muted dark:text-slate-400 mt-2.5 leading-snug" id="aiOverlayNote">
-      The model is cached after download — you'll only see this once.
+<!-- HEADER -->
+<header class="h-14 shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-5 z-20 relative">
+  <div class="flex items-center gap-3">
+    <img src="https://img.icons8.com/3d-fluency/94/stack-of-photos.png" alt="ReadyChobi" class="w-8 h-8 object-contain" onerror="this.outerHTML='&lt;div class=\'w-8 h-8 rounded-lg bg-gradient-to-br from-brand to-violet-600 flex items-center justify-center text-white font-bold text-sm\'&gt;R&lt;/div&gt;'">
+    <h1 class="font-semibold text-sm tracking-tight text-slate-900 dark:text-white">ReadyChobi</h1>
+    <div class="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
+    <div class="flex items-center gap-1.5 px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800">
+      <div id="aiDot" class="w-2 h-2 rounded-full bg-slate-400"></div>
+      <span id="aiText" class="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Idle</span>
     </div>
   </div>
-</div>
-
-<header class="h-[60px] shrink-0 bg-white dark:bg-slate-900 border-b border-line dark:border-slate-800 flex items-center gap-2 px-4 md:px-6 z-10">
-  <div class="flex items-center gap-2.5 font-bold text-[1.05rem]">
-    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-violet-500 flex items-center justify-center text-white text-sm font-extrabold">R</div>
-    <span class="hidden sm:inline">ReadyChobi</span>
+  <div class="flex items-center gap-1">
+    <button id="undoBtn" disabled class="w-8 h-8 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors" title="Undo (Ctrl+Z)"><i class="ph ph-arrow-u-up-left text-lg"></i></button>
+    <button id="redoBtn" disabled class="w-8 h-8 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-colors" title="Redo (Ctrl+Shift+Z)"><i class="ph ph-arrow-u-up-right text-lg"></i></button>
+    <div class="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
+    <button id="langToggle" class="w-8 h-8 flex items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-bold text-xs" title="Language">বাং</button>
+    <button id="themeToggle" class="w-8 h-8 flex items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Toggle Theme">
+      <i class="ph ph-moon text-lg hidden dark:block"></i>
+      <i class="ph ph-sun text-lg block dark:hidden"></i>
+    </button>
+    <a href="https://github.com/Opirajbhor" target="_blank" class="flex items-center gap-2 pl-1 pr-3 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors ml-1">
+      <img src="https://github.com/Opirajbhor.png?size=64" alt="Opirajbhor" class="w-6 h-6 rounded-full ring-1 ring-white/50 dark:ring-slate-900/50" onerror="this.style.display='none'">
+      <span class="text-xs font-semibold text-slate-700 dark:text-slate-200 hidden md:inline">Opirajbhor</span>
+    </a>
   </div>
-  <div class="flex-1"></div>
-  <div class="hidden lg:block text-xs text-ink-muted dark:text-slate-400" data-i18n="tagline">100% local · no uploads</div>
-
-  <button id="langToggle" title="Language" class="px-3 h-9 rounded-full bg-slate-50 dark:bg-slate-800 border border-line dark:border-slate-700 text-xs font-bold text-ink-2 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-    <span id="langLabel">বাং</span>
-  </button>
-
-  <button id="themeToggle" title="Theme" class="w-9 h-9 rounded-full bg-slate-50 dark:bg-slate-800 border border-line dark:border-slate-700 flex items-center justify-center cursor-pointer text-ink-2 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-    <svg id="themeIconSun" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-    <svg id="themeIconMoon" class="w-4 h-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-  </button>
-
-  <div id="modelPill" class="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800 border border-line dark:border-slate-700 text-xs text-ink-2 dark:text-slate-300 transition-colors">
-    <span id="modelDot" class="w-2 h-2 rounded-full bg-slate-400"></span>
-    <span id="modelPillText">AI not loaded</span>
-  </div>
-
-  <a href="https://github.com/Opirajbhor" target="_blank" rel="noopener" title="GitHub — Opirajbhor"
-     class="inline-flex items-center gap-2 pl-0.5 pr-3 py-0.5 rounded-full bg-ink dark:bg-slate-100 text-white dark:text-ink text-xs font-semibold no-underline hover:bg-slate-800 dark:hover:bg-white transition-all">
-    <img src="https://github.com/Opirajbhor.png?size=64"
-         alt="Opirajbhor"
-         class="w-7 h-7 rounded-full object-cover ring-2 ring-white/20 dark:ring-ink/20"
-         onerror="this.style.display='none'">
-    <span class="hidden md:inline">Opirajbhor</span>
-  </a>
 </header>
 
-<div class="flex-1 flex flex-col lg:flex-row lg:overflow-hidden min-h-0">
-  <main class="flex-1 min-w-0 lg:overflow-y-auto p-6 scroll-thin">
-    <!-- DROP AREA — increased 1.5× -->
-    <div id="dropZone" class="bg-white dark:bg-slate-900 border-2 border-dashed border-line-2 dark:border-slate-700 rounded-xl p-12 text-center cursor-pointer transition-all mb-6 hover:border-accent hover:bg-blue-50/40 dark:hover:bg-slate-800">
-      <h3 class="text-lg font-semibold mb-1.5" data-i18n="dropTitle">Drop images here</h3>
-      <p class="text-sm text-ink-muted dark:text-slate-400" data-i18n="dropHint">or click to browse — or paste with Ctrl+V</p>
-    </div>
-    <input type="file" id="fileInput" accept="image/*" multiple class="absolute w-px h-px opacity-0 pointer-events-none">
-
-    <div class="flex items-center justify-between mb-3">
-      <h2 class="text-xs font-semibold text-ink-2 dark:text-slate-300 uppercase tracking-wider" data-i18n="library">Library</h2>
-      <div class="flex items-center gap-2">
-        <span id="libCount" class="text-xs text-ink-muted dark:text-slate-400 bg-slate-50 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-line dark:border-slate-700">0</span>
-        <button id="clearBtn" class="text-xs font-medium text-ink-muted dark:text-slate-400 px-2.5 py-1 rounded-lg border border-transparent transition-colors hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-danger hover:border-red-200 dark:hover:border-red-900" data-i18n="clear">Clear</button>
+<!-- MAIN -->
+<div class="flex-1 flex overflow-hidden">
+  <main class="flex-1 overflow-y-auto p-6 lg:p-8 flex flex-col">
+    <div id="dropZone" class="flex-1 min-h-[300px] border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer transition-all hover:border-brand hover:bg-brand/5 dark:hover:bg-slate-900/50 mb-6 group">
+      <div class="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-brand group-hover:scale-105 transition-all mb-4">
+        <i class="ph ph-upload-simple text-3xl"></i>
+      </div>
+      <h2 class="text-lg font-semibold text-slate-700 dark:text-slate-200 mb-1">Drop your photos here</h2>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">or click to browse files</p>
+      <div class="flex gap-3 text-xs font-medium text-slate-400">
+        <span class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">PNG</span>
+        <span class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">JPG</span>
+        <span class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">WebP</span>
       </div>
     </div>
+    <input type="file" id="fileInput" accept="image/*" multiple class="hidden">
 
-    <div id="library" class="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3"></div>
+    <div id="libraryHeader" class="hidden items-center justify-between mb-4">
+      <div class="flex items-center gap-2">
+        <h2 class="text-sm font-semibold text-slate-700 dark:text-slate-300">Library</h2>
+        <span id="libCount" class="text-xs font-medium bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full">0</span>
+      </div>
+      <button id="clearBtn" class="text-xs font-medium text-slate-500 hover:text-red-500 transition-colors">Clear all</button>
+    </div>
+
+    <div id="library" class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-4"></div>
   </main>
 
-  <aside class="w-full lg:w-[360px] shrink-0 bg-white dark:bg-slate-900 border-t lg:border-t-0 lg:border-l border-line dark:border-slate-800 lg:overflow-y-auto flex flex-col scroll-thin">
-
-    <div class="p-5 border-b border-line dark:border-slate-800">
-      <h3 class="text-[0.72rem] font-bold text-ink-muted dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-        <span class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-accent-soft dark:bg-blue-950 text-accent text-[0.68rem] font-extrabold">1</span>
-        <span data-i18n="sectionFocus">Subject Focus</span>
-      </h3>
-      <label class="flex items-center gap-2.5 px-2.5 py-2 bg-slate-50 dark:bg-slate-800 border border-line dark:border-slate-700 rounded-lg cursor-pointer">
-        <input type="checkbox" id="autoFocus" checked class="w-4 h-4 accent-accent cursor-pointer shrink-0">
-        <div>
-          <span class="text-[0.82rem] font-medium text-ink dark:text-slate-100 block" data-i18n="autoFocus">Auto-focus subject</span>
-          <span class="block text-[0.7rem] text-ink-muted dark:text-slate-400 mt-0.5" data-i18n="autoFocusHint">Frames the head like a passport photo</span>
-        </div>
-      </label>
-      <label class="flex items-center gap-2.5 px-2.5 py-2 mt-2 bg-slate-50 dark:bg-slate-800 border border-line dark:border-slate-700 rounded-lg cursor-pointer">
-        <input type="checkbox" id="autoEnhance" class="w-4 h-4 accent-accent cursor-pointer shrink-0">
-        <div>
-          <span class="text-[0.82rem] font-medium text-ink dark:text-slate-100 block" data-i18n="autoEnhance">Auto-enhance</span>
-          <span class="block text-[0.7rem] text-ink-muted dark:text-slate-400 mt-0.5" data-i18n="autoEnhanceHint">Brightness + contrast boost</span>
-        </div>
-      </label>
-      <label class="flex items-center gap-2.5 px-2.5 py-2 mt-2 bg-slate-50 dark:bg-slate-800 border border-line dark:border-slate-700 rounded-lg cursor-pointer">
-        <input type="checkbox" id="trimEdges" checked class="w-4 h-4 accent-accent cursor-pointer shrink-0">
-        <div>
-          <span class="text-[0.82rem] font-medium text-ink dark:text-slate-100 block" data-i18n="trimEdges">Trim transparent edges</span>
-          <span class="block text-[0.7rem] text-ink-muted dark:text-slate-400 mt-0.5" data-i18n="trimEdgesHint">Removes empty margins around subject</span>
-        </div>
-      </label>
-    </div>
-
-    <div class="p-5 border-b border-line dark:border-slate-800">
-      <h3 class="text-[0.72rem] font-bold text-ink-muted dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-        <span class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-accent-soft dark:bg-blue-950 text-accent text-[0.68rem] font-extrabold">2</span>
-        <span data-i18n="sectionCrop">Crop</span>
-      </h3>
-      <div class="mb-3">
-        <label class="block text-[0.78rem] font-semibold text-ink-2 dark:text-slate-300 mb-1.5" data-i18n="preset">Preset</label>
-        <select id="cropPreset" class="w-full px-2.5 py-2 border border-line dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-ink dark:text-slate-100 outline-none focus:border-accent">
-          <option value="bd-passport" selected>Bangladesh Passport — 40×50 mm</option>
-          <option value="bd-visa">Bangladesh Visa — 35×45 mm</option>
-          <option value="us-passport">US Passport — 2×2 in</option>
-          <option value="schengen-visa">Schengen/Visa — 35×45 mm</option>
-          <option value="india-passport">India Passport — 35×35 mm</option>
-          <option value="china-visa">China Visa — 33×48 mm</option>
-          <option value="square">Square — 1:1</option>
-          <option value="none">No crop</option>
-          <option value="custom">Custom…</option>
-        </select>
-      </div>
-      <div id="customCropGroup" class="hidden">
-        <label class="block text-[0.78rem] font-semibold text-ink-2 dark:text-slate-300 mb-1.5" data-i18n="customSize">Custom size (px)</label>
-        <div class="grid grid-cols-2 gap-2">
-          <input type="number" id="customCropW" placeholder="Width" min="1" class="w-full px-2.5 py-2 border border-line dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 outline-none focus:border-accent">
-          <input type="number" id="customCropH" placeholder="Height" min="1" class="w-full px-2.5 py-2 border border-line dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 outline-none focus:border-accent">
-        </div>
-      </div>
-    </div>
-
-    <div class="p-5 border-b border-line dark:border-slate-800">
-      <h3 class="text-[0.72rem] font-bold text-ink-muted dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-        <span class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-accent-soft dark:bg-blue-950 text-accent text-[0.68rem] font-extrabold">3</span>
-        <span data-i18n="sectionBg">Background Color</span>
-      </h3>
-      <div class="flex items-center gap-2 mb-2.5">
-        <div id="colorPreview" class="relative w-8 h-8 rounded-md overflow-hidden border border-line-2 dark:border-slate-700 cursor-pointer shrink-0" style="background:#ACC0FB">
-          <input type="color" id="bgColor" value="#ACC0FB" class="absolute -inset-1 w-[calc(100%+8px)] h-[calc(100%+8px)] border-none p-0 bg-transparent cursor-pointer">
-        </div>
-        <span id="colorHex" class="font-mono text-[0.75rem] text-ink-2 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded border border-line dark:border-slate-700">#ACC0FB</span>
-      </div>
-      <div id="swatches" class="flex flex-wrap gap-1.5">
-        <div class="swatch active w-7 h-7 rounded-md border-2 border-transparent cursor-pointer transition-transform hover:scale-110" style="background:#ACC0FB" data-color="#ACC0FB"></div>
-        <div class="swatch w-7 h-7 rounded-md border-2 border-transparent cursor-pointer transition-transform hover:scale-110" style="background:#ffffff" data-color="#ffffff"></div>
-        <div class="swatch w-7 h-7 rounded-md border-2 border-transparent cursor-pointer transition-transform hover:scale-110" style="background:#2563eb" data-color="#2563eb"></div>
-        <div class="swatch w-7 h-7 rounded-md border-2 border-transparent cursor-pointer transition-transform hover:scale-110" style="background:#dc2626" data-color="#dc2626"></div>
-        <div class="swatch w-7 h-7 rounded-md border-2 border-transparent cursor-pointer transition-transform hover:scale-110" style="background:#16a34a" data-color="#16a34a"></div>
-        <div class="swatch w-7 h-7 rounded-md border-2 border-transparent cursor-pointer transition-transform hover:scale-110" style="background:#f59e0b" data-color="#f59e0b"></div>
-        <div class="swatch w-7 h-7 rounded-md border-2 border-transparent cursor-pointer transition-transform hover:scale-110" style="background:#000000" data-color="#000000"></div>
-        <div class="swatch transparent checker w-7 h-7 rounded-md border-2 border-dashed border-slate-400 cursor-pointer transition-transform hover:scale-110" data-color="transparent"></div>
-      </div>
-    </div>
-
-    <div class="p-5 border-b border-line dark:border-slate-800">
-      <h3 class="text-[0.72rem] font-bold text-ink-muted dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-        <span class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-accent-soft dark:bg-blue-950 text-accent text-[0.68rem] font-extrabold">4</span>
-        <span data-i18n="sectionOutput">Output</span>
-      </h3>
-      <div class="mb-3">
-        <label class="block text-[0.78rem] font-semibold text-ink-2 dark:text-slate-300 mb-1.5" data-i18n="format">Format</label>
-        <select id="outputFormat" class="w-full px-2.5 py-2 border border-line dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-ink dark:text-slate-100 outline-none focus:border-accent">
-          <option value="image/webp" selected>WebP (.webp)</option>
-          <option value="image/jpeg">JPEG (.jpg)</option>
-          <option value="image/png">PNG (.png)</option>
-        </select>
-      </div>
+  <aside class="w-[340px] shrink-0 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex flex-col hidden lg:flex">
+    <div class="flex-1 overflow-y-auto p-5 space-y-6">
       <div>
-        <label class="block text-[0.78rem] font-semibold text-ink-2 dark:text-slate-300 mb-1.5" data-i18n="targetSize">Target size (KB)</label>
-        <div class="flex items-center gap-2">
-          <input type="number" id="sizeMin" value="20" min="1" class="flex-1 min-w-0 px-2.5 py-2 border border-line dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 outline-none focus:border-accent">
-          <span class="text-sm text-ink-muted">–</span>
-          <input type="number" id="sizeMax" value="50" min="1" class="flex-1 min-w-0 px-2.5 py-2 border border-line dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 outline-none focus:border-accent">
-          <span class="text-xs text-ink-muted font-semibold">KB</span>
+        <label class="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Preset</label>
+        <div class="relative">
+          <select id="cropPreset" class="w-full appearance-none bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all">
+            <option value="bd-passport" selected>Bangladesh Passport — 40×50 mm</option>
+            <option value="bd-visa">Bangladesh Visa — 35×45 mm</option>
+            <option value="us-passport">US Passport — 2×2 in</option>
+            <option value="schengen-visa">Schengen/Visa — 35×45 mm</option>
+            <option value="india-passport">India Passport — 35×35 mm</option>
+            <option value="china-visa">China Visa — 33×48 mm</option>
+            <option value="square">Square — 1:1</option>
+            <option value="none">No crop (original)</option>
+            <option value="custom">Custom…</option>
+          </select>
+          <i class="ph ph-caret-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+        </div>
+        <div id="customCropGroup" class="hidden mt-2 grid grid-cols-2 gap-2">
+          <input type="number" id="customCropW" placeholder="W" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand">
+          <input type="number" id="customCropH" placeholder="H" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Framing</label>
+        <div class="space-y-2">
+          <label class="flex items-center gap-3 p-2 -mx-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors">
+            <input type="checkbox" id="autoFocus" checked class="w-4 h-4 rounded border-slate-300 text-brand focus:ring-brand cursor-pointer">
+            <span class="text-sm text-slate-700 dark:text-slate-300 flex-1">Auto-focus face</span>
+          </label>
+          <label class="flex items-center gap-3 p-2 -mx-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors">
+            <input type="checkbox" id="autoEnhance" class="w-4 h-4 rounded border-slate-300 text-brand focus:ring-brand cursor-pointer">
+            <span class="text-sm text-slate-700 dark:text-slate-300 flex-1">Auto-enhance</span>
+          </label>
+          <label class="flex items-center gap-3 p-2 -mx-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors">
+            <input type="checkbox" id="trimEdges" checked class="w-4 h-4 rounded border-slate-300 text-brand focus:ring-brand cursor-pointer">
+            <span class="text-sm text-slate-700 dark:text-slate-300 flex-1">Trim empty edges</span>
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <label class="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Background</label>
+          <select id="bgMode" class="text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 border-none rounded text-slate-600 dark:text-slate-300 py-0.5 px-1 focus:ring-0 cursor-pointer">
+            <option value="solid">Solid</option>
+            <option value="gradient">Gradient</option>
+          </select>
+        </div>
+        
+        <div id="solidBgControls">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="relative w-9 h-9 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 cursor-pointer shadow-sm shrink-0" style="background:#ACC0FB">
+              <input type="color" id="bgColor" value="#ACC0FB" class="absolute -inset-2 w-[calc(100%+16px)] h-[calc(100%+16px)]">
+            </div>
+            <input type="text" id="colorHex" value="#ACC0FB" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-mono uppercase focus:outline-none focus:border-brand">
+          </div>
+          <div class="flex flex-wrap gap-1.5" id="swatches">
+            <button class="w-6 h-6 rounded border border-slate-200 shadow-sm transition-transform hover:scale-110" style="background:#ACC0FB" data-color="#ACC0FB"></button>
+            <button class="w-6 h-6 rounded border border-slate-200 shadow-sm transition-transform hover:scale-110" style="background:#ffffff" data-color="#ffffff"></button>
+            <button class="w-6 h-6 rounded border border-slate-200 shadow-sm transition-transform hover:scale-110" style="background:#2563eb" data-color="#2563eb"></button>
+            <button class="w-6 h-6 rounded border border-slate-200 shadow-sm transition-transform hover:scale-110" style="background:#dc2626" data-color="#dc2626"></button>
+            <button class="w-6 h-6 rounded border border-slate-200 shadow-sm transition-transform hover:scale-110" style="background:#16a34a" data-color="#16a34a"></button>
+            <button class="w-6 h-6 rounded border border-slate-200 shadow-sm transition-transform hover:scale-110" style="background:#f59e0b" data-color="#f59e0b"></button>
+            <button class="w-6 h-6 rounded border border-slate-200 shadow-sm transition-transform hover:scale-110" style="background:#000000" data-color="#000000"></button>
+            <button class="w-6 h-6 rounded border border-dashed border-slate-400 shadow-sm transition-transform hover:scale-110 flex items-center justify-center bg-white text-slate-400" data-color="transparent"><i class="ph ph-drop-half text-xs"></i></button>
+          </div>
+        </div>
+
+        <div id="gradientBgControls" class="hidden">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="flex-1">
+              <label class="text-[10px] text-slate-500 mb-1 block">Color 1</label>
+              <div class="relative w-full h-8 rounded overflow-hidden border border-slate-200 dark:border-slate-700 cursor-pointer" style="background:#ACC0FB">
+                <input type="color" id="gradColor1" value="#ACC0FB" class="absolute -inset-2 w-[calc(100%+16px)] h-[calc(100%+16px)]">
+              </div>
+            </div>
+            <div class="flex-1">
+              <label class="text-[10px] text-slate-500 mb-1 block">Color 2</label>
+              <div class="relative w-full h-8 rounded overflow-hidden border border-slate-200 dark:border-slate-700 cursor-pointer" style="background:#ffffff">
+                <input type="color" id="gradColor2" value="#ffffff" class="absolute -inset-2 w-[calc(100%+16px)] h-[calc(100%+16px)]">
+              </div>
+            </div>
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-500 mb-1 block">Angle</label>
+            <input type="range" id="gradAngle" min="0" max="360" value="180" class="w-full">
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Output</label>
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-slate-600 dark:text-slate-400">Format</span>
+            <select id="outputFormat" class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs focus:outline-none">
+              <option value="image/webp">WebP</option>
+              <option value="image/jpeg">JPEG</option>
+              <option value="image/png">PNG</option>
+            </select>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-slate-600 dark:text-slate-400">Size</span>
+            <div class="flex items-center gap-1">
+              <input type="number" id="sizeMin" value="20" class="w-12 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-1 text-xs text-center focus:outline-none">
+              <span class="text-slate-400 text-xs">-</span>
+              <input type="number" id="sizeMax" value="50" class="w-12 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-1 text-xs text-center focus:outline-none">
+              <span class="text-xs text-slate-400 font-medium">KB</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="p-5 border-b border-line dark:border-slate-800">
-      <h3 class="text-[0.72rem] font-bold text-ink-muted dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-        <span class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-accent-soft dark:bg-blue-950 text-accent text-[0.68rem] font-extrabold">5</span>
-        <span data-i18n="sectionPresets">Presets</span>
-      </h3>
-      <select id="presetSelect" class="w-full px-2.5 py-2 border border-line dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-ink dark:text-slate-100 outline-none focus:border-accent mb-2">
-        <option value="">—</option>
-      </select>
-      <div class="flex gap-2">
-        <button id="savePresetBtn" class="flex-1 px-3 py-2 rounded-lg text-xs font-semibold text-ink-2 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-line dark:border-slate-700 hover:bg-white dark:hover:bg-slate-700 transition-colors" data-i18n="saveCurrent">Save current</button>
-        <button id="deletePresetBtn" class="px-3 py-2 rounded-lg text-xs font-semibold text-danger bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 hover:bg-red-100 transition-colors" data-i18n="delete">Delete</button>
-      </div>
-    </div>
-
-    <div class="p-5 border-b border-line dark:border-slate-800">
-      <h3 class="text-[0.72rem] font-bold text-ink-muted dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-        <span class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-accent-soft dark:bg-blue-950 text-accent text-[0.68rem] font-extrabold">6</span>
-        <span data-i18n="sectionProcess">Process</span>
-      </h3>
-      <button id="processBtn" disabled class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-accent shadow-[0_2px_6px_rgba(59,130,246,.3)] transition-all hover:bg-accent-hover disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:shadow-none disabled:cursor-not-allowed">
-        <svg id="processBtnIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        <span id="processBtnText" data-i18n="processAll">Process All</span>
+    <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2 shrink-0">
+      <button id="processBtn" disabled class="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand-hover text-white font-medium text-sm py-2.5 rounded-lg shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+        <i class="ph ph-play-circle text-lg"></i>
+        <span id="processBtnText">Process All</span>
       </button>
-      <div class="mt-3">
-        <div class="h-1.5 bg-slate-50 dark:bg-slate-800 rounded-full border border-line dark:border-slate-700 overflow-hidden">
-          <div id="progressFill" class="h-full w-0 bg-gradient-to-r from-accent to-violet-500 rounded-full transition-[width] duration-300"></div>
-        </div>
-        <div id="status" class="text-xs text-ink-muted dark:text-slate-400 mt-2 min-h-[1.1em] break-words" data-i18n="ready">Ready.</div>
-      </div>
-    </div>
-
-    <div class="p-5">
-      <h3 class="text-[0.72rem] font-bold text-ink-muted dark:text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-        <span class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-accent-soft dark:bg-blue-950 text-accent text-[0.68rem] font-extrabold">7</span>
-        <span data-i18n="sectionDownload">Download</span>
-      </h3>
-      <button id="downloadZipBtn" disabled class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-ink-2 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-line dark:border-slate-700 transition-all hover:bg-white dark:hover:bg-slate-700 disabled:text-slate-300 disabled:cursor-not-allowed">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        <span data-i18n="downloadZip">Download ZIP</span>
+      <button id="downloadZipBtn" disabled class="w-full flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium text-sm py-2.5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+        <i class="ph ph-archive-box text-lg"></i>
+        <span>Download ZIP</span>
       </button>
-      <p class="text-[0.7rem] text-ink-muted dark:text-slate-400 mt-2 text-center" data-i18n="zipHint">Tip: click any processed image to download it individually</p>
-    </div>
-
-    <div class="px-5 py-4 bg-slate-50 dark:bg-slate-800 border-t border-line dark:border-slate-800 mt-auto text-xs text-ink-muted dark:text-slate-400 text-center" data-i18n="privacy">
-      🔒 Images never leave your device
     </div>
   </aside>
 </div>
 
-<div id="cropModal" class="fixed inset-0 bg-ink/75 backdrop-blur-sm hidden items-center justify-center z-[200] p-4">
-  <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[calc(100vh-2rem)] overflow-hidden">
-    <div class="px-5 py-4 border-b border-line dark:border-slate-800 flex items-center justify-between shrink-0">
-      <h3 class="text-base font-bold" data-i18n="manualCrop">Manual Crop</h3>
-      <div class="flex items-center gap-2">
-        <button id="cropUndo" class="w-8 h-8 rounded-lg border border-line dark:border-slate-700 bg-transparent text-ink-muted dark:text-slate-400 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30" disabled>
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
-        </button>
-        <button id="cropRedo" class="w-8 h-8 rounded-lg border border-line dark:border-slate-700 bg-transparent text-ink-muted dark:text-slate-400 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30" disabled>
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>
-        </button>
-        <button id="cropModalClose" class="w-8 h-8 rounded-lg bg-transparent text-2xl text-ink-muted dark:text-slate-400 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800">×</button>
-      </div>
+<!-- EDIT MODAL -->
+<div id="editModal" class="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm hidden flex-col">
+  <div class="h-14 shrink-0 flex items-center justify-between px-4 text-white border-b border-white/10">
+    <div class="flex items-center gap-3">
+      <button id="editModalClose" class="w-8 h-8 flex items-center justify-center rounded-md hover:bg-white/10 transition-colors"><i class="ph ph-x text-xl"></i></button>
+      <span class="text-sm font-medium">Edit Photo</span>
     </div>
-    <div class="p-5 flex-1 overflow-auto flex flex-col items-center gap-3">
-      <div id="cropStage" class="relative overflow-hidden rounded-lg checker-soft touch-none select-none shadow-[0_0_0_1px_#e2e8f0]">
+    <div class="flex items-center gap-1 bg-white/5 rounded-lg p-0.5">
+      <button id="tabCrop" class="tab-btn px-4 py-1.5 rounded-md text-xs font-semibold transition-all bg-white/10 text-white">Crop</button>
+      <button id="tabFilters" class="tab-btn px-4 py-1.5 rounded-md text-xs font-semibold transition-all text-white/60 hover:text-white">Filters</button>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="cropUndoBtn" class="w-8 h-8 flex items-center justify-center rounded-md hover:bg-white/10 disabled:opacity-30 transition-colors" disabled title="Undo">
+        <i class="ph ph-arrow-u-up-left text-lg"></i>
+      </button>
+      <button id="cropRedoBtn" class="w-8 h-8 flex items-center justify-center rounded-md hover:bg-white/10 disabled:opacity-30 transition-colors" disabled title="Redo">
+        <i class="ph ph-arrow-u-up-right text-lg"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="flex-1 overflow-hidden relative">
+    <div id="panelCrop" class="absolute inset-0 flex items-center justify-center p-8">
+      <div id="cropStage" class="relative overflow-hidden rounded-lg shadow-2xl">
         <img id="cropBgImg" alt="" class="block pointer-events-none select-none" draggable="false">
-        <div id="cropRect" class="absolute border-2 border-white cursor-move touch-none z-[2] thirds" style="box-shadow:0 0 0 9999px rgba(15,23,42,.6);">
-          <div class="crop-handle absolute w-[18px] h-[18px] bg-white rounded-full border-2 border-accent shadow-[0_1px_3px_rgba(0,0,0,.35)] z-[3] touch-none cursor-nwse-resize -top-[9px] -left-[9px]" data-h="nw"></div>
-          <div class="crop-handle absolute w-[18px] h-[18px] bg-white rounded-full border-2 border-accent shadow-[0_1px_3px_rgba(0,0,0,.35)] z-[3] touch-none cursor-nesw-resize -top-[9px] -right-[9px]" data-h="ne"></div>
-          <div class="crop-handle absolute w-[18px] h-[18px] bg-white rounded-full border-2 border-accent shadow-[0_1px_3px_rgba(0,0,0,.35)] z-[3] touch-none cursor-nesw-resize -bottom-[9px] -left-[9px]" data-h="sw"></div>
-          <div class="crop-handle absolute w-[18px] h-[18px] bg-white rounded-full border-2 border-accent shadow-[0_1px_3px_rgba(0,0,0,.35)] z-[3] touch-none cursor-nwse-resize -bottom-[9px] -right-[9px]" data-h="se"></div>
+        <div id="cropRect" class="absolute border-2 border-brand cursor-move shadow-[0_0_0_9999px_rgba(0,0,0,0.7)] z-10">
+          <div class="absolute inset-0 pointer-events-none opacity-30">
+            <div class="absolute left-1/3 top-0 bottom-0 w-px bg-white"></div>
+            <div class="absolute left-2/3 top-0 bottom-0 w-px bg-white"></div>
+            <div class="absolute top-1/3 left-0 right-0 h-px bg-white"></div>
+            <div class="absolute top-2/3 left-0 right-0 h-px bg-white"></div>
+          </div>
+          <div class="absolute w-3 h-3 bg-white border-2 border-brand rounded-full -top-1.5 -left-1.5 cursor-nwse-resize" data-h="nw"></div>
+          <div class="absolute w-3 h-3 bg-white border-2 border-brand rounded-full -top-1.5 -right-1.5 cursor-nesw-resize" data-h="ne"></div>
+          <div class="absolute w-3 h-3 bg-white border-2 border-brand rounded-full -bottom-1.5 -left-1.5 cursor-nesw-resize" data-h="sw"></div>
+          <div class="absolute w-3 h-3 bg-white border-2 border-brand rounded-full -bottom-1.5 -right-1.5 cursor-nwse-resize" data-h="se"></div>
         </div>
       </div>
-      <p id="cropDims" class="text-xs text-ink-muted dark:text-slate-400 text-center"></p>
     </div>
-    <div class="px-5 py-3.5 border-t border-line dark:border-slate-800 flex items-center gap-2 bg-slate-50 dark:bg-slate-800 shrink-0 max-lg:flex-wrap">
-      <button id="cropReset" class="px-4 py-2 rounded-lg text-sm font-semibold text-ink-2 dark:text-slate-300 bg-white dark:bg-slate-900 border border-line dark:border-slate-700" data-i18n="reset">Reset</button>
-      <div class="flex-1 max-lg:hidden"></div>
-      <button id="cropCancel" class="px-4 py-2 rounded-lg text-sm font-semibold text-ink-2 dark:text-slate-300 bg-white dark:bg-slate-900 border border-line dark:border-slate-700" data-i18n="cancel">Cancel</button>
-      <button id="cropApply" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-accent hover:bg-accent-hover" data-i18n="applyCrop">Apply Crop</button>
+
+    <div id="panelFilters" class="absolute inset-0 hidden flex">
+      <div class="flex-1 flex items-center justify-center p-8">
+        <div id="editPreviewStage" class="relative rounded-lg overflow-hidden shadow-2xl">
+          <img id="editPreviewImg" alt="" class="block max-w-full max-h-[60vh] pointer-events-none select-none" draggable="false">
+        </div>
+      </div>
+      
+      <div class="w-80 bg-white/5 border-l border-white/10 p-4 overflow-y-auto text-white space-y-4">
+        <div>
+          <label class="block text-[10px] font-bold uppercase tracking-wider text-white/50 mb-2">Presets</label>
+          <div class="grid grid-cols-3 gap-1.5" id="filterPresets">
+            <button class="filter-preset px-2 py-1.5 rounded-md text-[11px] font-medium bg-white/5 hover:bg-white/10 transition-colors" data-preset="original">Original</button>
+            <button class="filter-preset px-2 py-1.5 rounded-md text-[11px] font-medium bg-white/5 hover:bg-white/10 transition-colors" data-preset="natural">Natural</button>
+            <button class="filter-preset px-2 py-1.5 rounded-md text-[11px] font-medium bg-white/5 hover:bg-white/10 transition-colors" data-preset="warm">Warm</button>
+            <button class="filter-preset px-2 py-1.5 rounded-md text-[11px] font-medium bg-white/5 hover:bg-white/10 transition-colors" data-preset="cool">Cool</button>
+            <button class="filter-preset px-2 py-1.5 rounded-md text-[11px] font-medium bg-white/5 hover:bg-white/10 transition-colors" data-preset="vivid">Vivid</button>
+            <button class="filter-preset px-2 py-1.5 rounded-md text-[11px] font-medium bg-white/5 hover:bg-white/10 transition-colors" data-preset="bw">B&amp;W</button>
+          </div>
+        </div>
+
+        <div class="border-t border-white/10 pt-4 space-y-3">
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span>Brightness</span><span class="edit-val text-white/50" data-for="brightness">100%</span></div>
+            <input type="range" id="f_brightness" min="50" max="150" value="100" class="w-full">
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span>Exposure</span><span class="edit-val text-white/50" data-for="exposure">0</span></div>
+            <input type="range" id="f_exposure" min="-50" max="50" value="0" class="w-full">
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span>Contrast</span><span class="edit-val text-white/50" data-for="contrast">100%</span></div>
+            <input type="range" id="f_contrast" min="50" max="150" value="100" class="w-full">
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span>Saturation</span><span class="edit-val text-white/50" data-for="saturation">100%</span></div>
+            <input type="range" id="f_saturation" min="0" max="200" value="100" class="w-full">
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span>Hue</span><span class="edit-val text-white/50" data-for="hue">0°</span></div>
+            <input type="range" id="f_hue" min="-180" max="180" value="0" class="w-full">
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span>Warmth (skin tone)</span><span class="edit-val text-white/50" data-for="warmth">0</span></div>
+            <input type="range" id="f_warmth" min="-50" max="50" value="0" class="w-full">
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1"><span>Blur</span><span class="edit-val text-white/50" data-for="blur">0px</span></div>
+            <input type="range" id="f_blur" min="0" max="10" value="0" class="w-full">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="h-20 shrink-0 flex items-center justify-center pb-4">
+    <div class="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/10 p-1.5 rounded-2xl shadow-2xl">
+      <button id="editReset" class="px-4 py-2 rounded-xl text-sm font-medium text-white hover:bg-white/10 transition-colors">Reset</button>
+      <div class="w-px h-6 bg-white/20 mx-1"></div>
+      <button id="editCancel" class="px-4 py-2 rounded-xl text-sm font-medium text-white hover:bg-white/10 transition-colors">Cancel</button>
+      <button id="editApply" class="px-5 py-2 rounded-xl text-sm font-semibold bg-brand hover:bg-brand-hover text-white shadow-lg transition-colors">Apply</button>
     </div>
   </div>
 </div>
 
-<div id="presetModal" class="fixed inset-0 bg-ink/75 backdrop-blur-sm hidden items-center justify-center z-[200] p-4">
-  <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm p-5">
-    <h3 class="text-base font-bold mb-3" data-i18n="savePresetAs">Save preset as</h3>
-    <input type="text" id="presetName" maxlength="40" placeholder="e.g. BD Passport Blue" class="w-full px-3 py-2 border border-line dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 outline-none focus:border-accent mb-3">
-    <div class="flex justify-end gap-2">
-      <button id="presetCancel" class="px-4 py-2 rounded-lg text-sm font-semibold text-ink-2 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-line dark:border-slate-700" data-i18n="cancel">Cancel</button>
-      <button id="presetSave" class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-accent hover:bg-accent-hover" data-i18n="save">Save</button>
-    </div>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.2/dist/jszip.min.js"></script>
+<div id="toastContainer" class="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none"></div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -364,127 +384,159 @@ const autoFocus = $('autoFocus'), autoEnhance = $('autoEnhance'), trimEdges = $(
 const sizeMin = $('sizeMin'), sizeMax = $('sizeMax');
 const cropPreset = $('cropPreset'), customCropGroup = $('customCropGroup');
 const customCropW = $('customCropW'), customCropH = $('customCropH');
-const bgColorInput = $('bgColor'), swatches = $('swatches'), colorHex = $('colorHex');
-const colorPreview = $('colorPreview');
+const bgColorInput = $('bgColor'), colorHex = $('colorHex');
+const bgModeSelect = $('bgMode');
+const solidBgControls = $('solidBgControls'), gradientBgControls = $('gradientBgControls');
+const gradColor1 = $('gradColor1'), gradColor2 = $('gradColor2'), gradAngle = $('gradAngle');
 const outputFormat = $('outputFormat');
-const processBtn = $('processBtn'), processBtnText = $('processBtnText'), processBtnIcon = $('processBtnIcon');
+const processBtn = $('processBtn'), processBtnText = $('processBtnText');
 const downloadZipBtn = $('downloadZipBtn');
-const progressFill = $('progressFill'), statusEl = $('status');
-const library = $('library'), libCount = $('libCount');
-const modelPill = $('modelPill'), modelDot = $('modelDot'), modelPillText = $('modelPillText');
-const themeToggle = $('themeToggle'), themeIconSun = $('themeIconSun'), themeIconMoon = $('themeIconMoon');
-const presetSelect = $('presetSelect'), savePresetBtn = $('savePresetBtn'), deletePresetBtn = $('deletePresetBtn');
-const presetModal = $('presetModal'), presetName = $('presetName'), presetSave = $('presetSave'), presetCancel = $('presetCancel');
-const cropModal = $('cropModal'), cropModalClose = $('cropModalClose');
-const cropStage = $('cropStage'), cropBgImg = $('cropBgImg');
-const cropRect = $('cropRect'), cropDims = $('cropDims');
-const cropReset = $('cropReset'), cropCancel = $('cropCancel'), cropApply = $('cropApply');
-const cropUndo = $('cropUndo'), cropRedo = $('cropRedo');
-const langToggle = $('langToggle'), langLabel = $('langLabel');
-const aiOverlay = $('aiOverlay'), aiOverlayBar = $('aiOverlayBar');
-const aiOverlayTitle = $('aiOverlayTitle'), aiOverlaySubtitle = $('aiOverlaySubtitle');
-const aiOverlayPct = $('aiOverlayPct'), aiOverlayNote = $('aiOverlayNote');
+const library = $('library'), libCount = $('libCount'), libraryHeader = $('libraryHeader');
+const aiDot = $('aiDot'), aiText = $('aiText');
+const langToggle = $('langToggle'), themeToggle = $('themeToggle');
+const undoBtn = $('undoBtn'), redoBtn = $('redoBtn');
+
+const editModal = $('editModal'), editModalClose = $('editModalClose');
+const tabCrop = $('tabCrop'), tabFilters = $('tabFilters');
+const panelCrop = $('panelCrop'), panelFilters = $('panelFilters');
+const cropStage = $('cropStage'), cropBgImg = $('cropBgImg'), cropRect = $('cropRect');
+const cropUndoBtn = $('cropUndoBtn'), cropRedoBtn = $('cropRedoBtn');
+const editReset = $('editReset'), editCancel = $('editCancel'), editApply = $('editApply');
+const editPreviewStage = $('editPreviewStage'), editPreviewImg = $('editPreviewImg');
+const filterPresets = $('filterPresets');
+const toastContainer = $('toastContainer');
 
 let items = [];
 let processing = false;
 let idCounter = 0;
-let cropState = null;
 let currentLang = 'en';
+let currentPillState = 'idle';
 let currentModelPct = 0;
 let warmupPromise = null;
+let editSession = null;
 
-const I18N = {
-  en: {
-    tagline:'100% local · no uploads',
-    dropTitle:'Drop images here', dropHint:'or click to browse — or paste with Ctrl+V',
-    library:'Library', clear:'Clear',
-    sectionFocus:'Subject Focus', autoFocus:'Auto-focus subject', autoFocusHint:'Frames the head like a passport photo',
-    autoEnhance:'Auto-enhance', autoEnhanceHint:'Brightness + contrast boost',
-    trimEdges:'Trim transparent edges', trimEdgesHint:'Removes empty margins around subject',
-    sectionCrop:'Crop', preset:'Preset', customSize:'Custom size (px)',
-    sectionBg:'Background Color', sectionOutput:'Output', format:'Format', targetSize:'Target size (KB)',
-    sectionPresets:'Presets', saveCurrent:'Save current', delete:'Delete',
-    sectionProcess:'Process', processAll:'Process All', processing:'Processing…', ready:'Ready.',
-    sectionDownload:'Download', downloadZip:'Download ZIP', zipHint:'Tip: click any processed image to download it individually',
-    privacy:'🔒 Images never leave your device', manualCrop:'Manual Crop', reset:'Reset', cancel:'Cancel', applyCrop:'Apply Crop',
-    savePresetAs:'Save preset as', save:'Save',
-    selected:(n)=>`${n} image(s) selected.`, noValid:'No valid image files.',
-    processingN:(i,n,name)=>`Processing ${i}/${n} — ${name}`,
-    doneN:(ok,n)=>`✅ Done. ${ok}/${n} succeeded.`,
-    starting:'Starting…', buildingZip:'Building ZIP…', zipDone:(kb)=>`✅ ZIP downloaded (${kb} KB).`, zipFail:'❌ ZIP failed.',
-    nothingToDownload:'Nothing to download — process first.',
-    loading:'Loading image…', detecting:'Detecting face…', preparing:'Preparing for AI…',
-    removing:'Removing background (AI)…', reading:'Reading subject…', framing:'Framing photo…', encoding:'Encoding…',
-    doneBadge:'Done', readyBadge:'Ready', errorBadge:'Error', faceBadge:'Face ✓', croppedBadge:'Cropped',
-    editCrop:'Edit crop', download:'Download',
-    aiNotLoaded:'AI not loaded', aiLoading:'Loading AI…', aiReady:'AI ready', aiFailed:'AI failed',
-    downloadingModel:'Downloading AI model',
-    aiOverlaySubtitle:'RMBG-1.4 · first-time setup only',
-    aiOverlayNote:'The model is cached after download — you\'ll only see this once.',
-    waitingForAI:(p)=>`Waiting for AI… ${p}%`,
-    presetSaved:(n)=>`Preset "${n}" saved.`, presetLoaded:(n)=>`Preset "${n}" loaded.`,
-    presetDeleted:(n)=>`Preset "${n}" deleted.`, selectPresetToDelete:'Select a preset to delete.',
-    confirmDelete:(n)=>`Delete preset "${n}"?`,
-  },
-  bn: {
-    tagline:'১০০% লোকাল · আপলোড নেই',
-    dropTitle:'এখানে ছবি ড্রপ করুন', dropHint:'অথবা ক্লিক করুন — বা Ctrl+V দিয়ে পেস্ট করুন',
-    library:'লাইব্রেরি', clear:'মুছুন',
-    sectionFocus:'বিষয় ফোকাস', autoFocus:'স্বয়ংক্রিয় বিষয় ফোকাস', autoFocusHint:'পাসপোর্ট ছবির মতো মাথা ফ্রেম করে',
-    autoEnhance:'স্বয়ংক্রিয় উন্নয়ন', autoEnhanceHint:'উজ্জ্বলতা ও কনট্রাস্ট বাড়ায়',
-    trimEdges:'স্বচ্ছ প্রান্ত কাটুন', trimEdgesHint:'বিষয়ের চারপাশের খালি অংশ সরায়',
-    sectionCrop:'ক্রপ', preset:'প্রিসেট', customSize:'কাস্টম আকার (পিক্সেল)',
-    sectionBg:'ব্যাকগ্রাউন্ড রঙ', sectionOutput:'আউটপুট', format:'ফরম্যাট', targetSize:'লক্ষ্য আকার (কেবি)',
-    sectionPresets:'প্রিসেট', saveCurrent:'বর্তমান সংরক্ষণ', delete:'মুছুন',
-    sectionProcess:'প্রক্রিয়া', processAll:'সব প্রক্রিয়া করুন', processing:'প্রক্রিয়া চলছে…', ready:'প্রস্তুত।',
-    sectionDownload:'ডাউনলোড', downloadZip:'জিপ ডাউনলোড', zipHint:'টিপ: প্রক্রিয়াকৃত ছবিতে ক্লিক করে আলাদা ডাউনলোড করুন',
-    privacy:'🔒 ছবি কখনো আপনার ডিভাইস ছাড়ে না', manualCrop:'ম্যানুয়াল ক্রপ', reset:'রিসেট', cancel:'বাতিল', applyCrop:'ক্রপ প্রয়োগ করুন',
-    savePresetAs:'প্রিসেট হিসেবে সংরক্ষণ', save:'সংরক্ষণ',
-    selected:(n)=>`${n} টি ছবি নির্বাচিত।`, noValid:'কোনো বৈধ ছবি নেই।',
-    processingN:(i,n,name)=>`প্রক্রিয়া ${i}/${n} — ${name}`,
-    doneN:(ok,n)=>`✅ সম্পন্ন। ${ok}/${n} সফল।`,
-    starting:'শুরু হচ্ছে…', buildingZip:'জিপ তৈরি হচ্ছে…', zipDone:(kb)=>`✅ জিপ ডাউনলোড হয়েছে (${kb} কেবি)।`, zipFail:'❌ জিপ ব্যর্থ।',
-    nothingToDownload:'ডাউনলোড করার কিছু নেই — আগে প্রক্রিয়া করুন।',
-    loading:'ছবি লোড হচ্ছে…', detecting:'মুখ শনাক্ত করা হচ্ছে…', preparing:'AI এর জন্য প্রস্তুত হচ্ছে…',
-    removing:'ব্যাকগ্রাউন্ড সরানো হচ্ছে (AI)…', reading:'বিষয় পড়া হচ্ছে…', framing:'ফটো ফ্রেম করা হচ্ছে…', encoding:'এনকোডিং…',
-    doneBadge:'সম্পন্ন', readyBadge:'প্রস্তুত', errorBadge:'ত্রুটি', faceBadge:'মুখ ✓', croppedBadge:'ক্রপ করা',
-    editCrop:'ক্রপ সম্পাদনা', download:'ডাউনলোড',
-    aiNotLoaded:'AI লোড হয়নি', aiLoading:'AI লোড হচ্ছে…', aiReady:'AI প্রস্তুত', aiFailed:'AI ব্যর্থ',
-    downloadingModel:'AI মডেল ডাউনলোড হচ্ছে',
-    aiOverlaySubtitle:'RMBG-1.4 · শুধুমাত্র প্রথমবার',
-    aiOverlayNote:'ডাউনলোডের পর মডেল ক্যাশ হয়ে যায় — শুধু একবার দেখবেন।',
-    waitingForAI:(p)=>`AI লোড হচ্ছে… ${p}%`,
-    presetSaved:(n)=>`প্রিসেট "${n}" সংরক্ষিত।`, presetLoaded:(n)=>`প্রিসেট "${n}" লোড হয়েছে।`,
-    presetDeleted:(n)=>`প্রিসেট "${n}" মুছে ফেলা হয়েছে।`, selectPresetToDelete:'মুছতে একটি প্রিসেট নির্বাচন করুন।',
-    confirmDelete:(n)=>`প্রিসেট "${n}" মুছবেন?`,
-  },
-};
-function t(key, ...args){
-  const d = I18N[currentLang] || I18N.en;
-  const v = d[key] !== undefined ? d[key] : (I18N.en[key] || key);
-  return typeof v === 'function' ? v(...args) : v;
+const defaultEdits = () => ({
+  brightness: 100, exposure: 0, contrast: 100, saturation: 100,
+  hue: 0, warmth: 0, blur: 0
+});
+
+// ============ HISTORY ============
+let history = [];
+let historyIndex = -1;
+let isRestoringHistory = false;
+
+function cloneEdits(e) {
+  return { ...defaultEdits(), ...(e || {}) };
 }
-function applyLang(lang){
-  currentLang = lang;
-  document.documentElement.lang = lang === 'bn' ? 'bn' : 'en';
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.dataset.i18n;
-    const d = I18N[lang];
-    if (d && d[key] !== undefined && typeof d[key] !== 'function') el.textContent = d[key];
+
+function saveState() {
+  if (isRestoringHistory) return;
+  const state = {
+    cropPreset: cropPreset.value,
+    autoFocus: autoFocus.checked,
+    autoEnhance: autoEnhance.checked,
+    trimEdges: trimEdges.checked,
+    bgMode: bgModeSelect.value,
+    bgColor: bgColorInput.value,
+    gradColor1: gradColor1.value,
+    gradColor2: gradColor2.value,
+    gradAngle: gradAngle.value,
+    outputFormat: outputFormat.value,
+    items: items.map(it => ({
+      id: it.id, state: it.state,
+      cropLeft: it.cropLeft, cropTop: it.cropTop, cropW: it.cropW, cropH: it.cropH,
+      manualCrop: it.manualCrop,
+      edits: cloneEdits(it.edits)
+    }))
+  };
+  if (historyIndex < history.length - 1) history = history.slice(0, historyIndex + 1);
+  history.push(JSON.stringify(state));
+  if (history.length > 50) history.shift();
+  historyIndex = history.length - 1;
+  updateUndoRedoButtons();
+}
+
+function restoreState(index) {
+  if (index < 0 || index >= history.length) return;
+  isRestoringHistory = true;
+  const state = JSON.parse(history[index]);
+  cropPreset.value = state.cropPreset;
+  autoFocus.checked = state.autoFocus;
+  autoEnhance.checked = state.autoEnhance;
+  trimEdges.checked = state.trimEdges;
+  bgModeSelect.value = state.bgMode;
+  bgColorInput.value = state.bgColor;
+  colorHex.value = state.bgColor.toUpperCase();
+  gradColor1.value = state.gradColor1;
+  gradColor2.value = state.gradColor2;
+  gradAngle.value = state.gradAngle;
+  outputFormat.value = state.outputFormat;
+  
+  state.items.forEach(savedIt => {
+    const liveIt = items.find(i => i.id === savedIt.id);
+    if (liveIt && liveIt.state === 'done') {
+      liveIt.cropLeft = savedIt.cropLeft;
+      liveIt.cropTop = savedIt.cropTop;
+      liveIt.cropW = savedIt.cropW;
+      liveIt.cropH = savedIt.cropH;
+      liveIt.manualCrop = savedIt.manualCrop;
+      liveIt.edits = cloneEdits(savedIt.edits);
+      
+      if (liveIt.transparentCanvas) {
+        liveIt.transparentFramed = cropToTarget(liveIt.transparentCanvas,
+          { left: liveIt.cropLeft, top: liveIt.cropTop, w: liveIt.cropW, h: liveIt.cropH },
+          liveIt.targetW, liveIt.targetH);
+        liveIt.transparentFramed.toBlob(blob => {
+          if (blob) {
+            if (liveIt.transparentFramedUrl) URL.revokeObjectURL(liveIt.transparentFramedUrl);
+            liveIt.transparentFramedUrl = URL.createObjectURL(blob);
+            render();
+          }
+        }, 'image/png');
+      }
+    }
   });
-  langLabel.textContent = lang === 'en' ? 'বাং' : 'EN';
-  try { localStorage.setItem('bip-lang', lang); } catch(e){}
-  render(); updateButtons();
-  setPill(currentPillState);
-  if (currentPillState === 'loading'){
-    aiOverlayTitle.textContent = t('downloadingModel');
-    aiOverlaySubtitle.textContent = t('aiOverlaySubtitle');
-    aiOverlayNote.textContent = t('aiOverlayNote');
-  }
+  
+  updateBgModeUI();
+  render();
+  isRestoringHistory = false;
+  updateUndoRedoButtons();
 }
-langToggle.addEventListener('click', () => applyLang(currentLang === 'en' ? 'bn' : 'en'));
 
-/* ==== WORKER ==== */
+function updateUndoRedoButtons() {
+  undoBtn.disabled = processing || historyIndex <= 0;
+  redoBtn.disabled = processing || historyIndex >= history.length - 1;
+}
+undoBtn.addEventListener('click', () => {
+  if (processing) return;
+  if (historyIndex > 0) { historyIndex--; restoreState(historyIndex); }
+});
+redoBtn.addEventListener('click', () => {
+  if (processing) return;
+  if (historyIndex < history.length - 1) { historyIndex++; restoreState(historyIndex); }
+});
+setTimeout(() => saveState(), 100);
+
+// ============ TOAST ============
+function showToast(msg, type = 'info') {
+  const t = document.createElement('div');
+  t.className = `toast pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium ${
+    type === 'error' ? 'bg-red-50 border-red-200 text-red-800 dark:bg-red-950 dark:border-red-900 dark:text-red-200' :
+    type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950 dark:border-emerald-900 dark:text-emerald-200' :
+    'bg-white border-slate-200 text-slate-800 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200'
+  }`;
+  const icon = type === 'error' ? 'ph-warning-circle' : type === 'success' ? 'ph-check-circle' : 'ph-info';
+  t.innerHTML = `<i class="ph ${icon} text-lg"></i><span>${msg}</span>`;
+  toastContainer.appendChild(t);
+  setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transform = 'translateX(100%)';
+    t.style.transition = 'all 0.3s ease';
+    setTimeout(() => t.remove(), 300);
+  }, 3000);
+}
+
+// ============ AI WORKER ============
 const workerSrc = `
 const LIBS = [
   'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm',
@@ -515,37 +567,38 @@ let aiWorker = null, reqId = 0;
 const pending = new Map();
 const modelBytesByKey = new Map();
 
-function getWorker(){
+function getWorker() {
   if (aiWorker) return aiWorker;
   aiWorker = new Worker(workerUrl);
   aiWorker.onmessage = (e) => {
     const { id, result, error, progress } = e.data;
-    const p = pending.get(id);
-    if (!p) return;
-    if (progress){
+    const p = pending.get(id); if (!p) return;
+    if (progress) {
       const { key, current, total } = progress;
-      if (typeof current === 'number' && typeof total === 'number' && total > 0){
+      if (typeof current === 'number' && typeof total === 'number' && total > 0) {
         modelBytesByKey.set(key, { current, total });
         let cur = 0, tot = 0;
-        for (const v of modelBytesByKey.values()){ cur += v.current; tot += v.total; }
-        if (tot > 0) showAiOverlay(Math.min(99, Math.round(cur / tot * 100)));
+        for (const v of modelBytesByKey.values()) { cur += v.current; tot += v.total; }
+        if (tot > 0) {
+          currentModelPct = Math.min(99, Math.round(cur / tot * 100));
+          updateAiStatus();
+        }
       }
       return;
     }
     pending.delete(id);
     if (error) p.reject(new Error(error)); else p.resolve(result);
   };
-  aiWorker.onerror = (e) => { for (const p of pending.values()) p.reject(new Error('Worker error')); pending.clear(); };
+  aiWorker.onerror = () => { for (const p of pending.values()) p.reject(new Error('Worker error')); pending.clear(); };
   return aiWorker;
 }
-function aiRemoveBg(blob){
+function aiRemoveBg(blob) {
   return new Promise((resolve, reject) => {
-    const id = ++reqId;
-    pending.set(id, { resolve, reject });
+    const id = ++reqId; pending.set(id, { resolve, reject });
     getWorker().postMessage({ id, blob });
   });
 }
-function ensureAiLoaded(){
+function ensureAiLoaded() {
   if (warmupPromise) return warmupPromise;
   warmupPromise = (async () => {
     try {
@@ -557,263 +610,284 @@ function ensureAiLoaded(){
         c.toBlob(b => b ? resolve(b) : reject(new Error('warmup blob failed')), 'image/png');
       });
       return await new Promise((resolve, reject) => {
-        const id = ++reqId;
-        pending.set(id, { resolve, reject });
+        const id = ++reqId; pending.set(id, { resolve, reject });
         getWorker().postMessage({ id, blob });
       });
-    } catch (err){
-      warmupPromise = null;
-      throw err;
-    }
+    } catch (err) { warmupPromise = null; throw err; }
   })();
   warmupPromise.catch(() => {});
   return warmupPromise;
 }
-function showAiOverlay(pct){
-  currentModelPct = pct;
-  aiOverlay.classList.remove('hidden');
-  aiOverlay.classList.add('flex');
-  aiOverlayBar.style.width = pct + '%';
-  aiOverlayPct.textContent = pct + '%';
-  aiOverlayTitle.textContent = t('downloadingModel');
-  aiOverlaySubtitle.textContent = t('aiOverlaySubtitle');
-  aiOverlayNote.textContent = t('aiOverlayNote');
-  updateButtons();
-}
-function hideAiOverlay(){
-  aiOverlay.classList.add('hidden');
-  aiOverlay.classList.remove('flex');
-  aiOverlayBar.style.width = '0%';
-  currentModelPct = 0;
-}
 
-/* ==== PILL ==== */
-let currentPillState = 'idle';
-function currentPillText(){
-  const m = { idle:'aiNotLoaded', loading:'aiLoading', ready:'aiReady', fail:'aiFailed' };
-  return t(m[currentPillState] || 'aiNotLoaded');
+// ============ THEME ============
+let isDark = false;
+function applyTheme(dark) {
+  isDark = dark;
+  if (dark) document.documentElement.classList.add('dark');
+  else document.documentElement.classList.remove('dark');
+  themeToggle.innerHTML = dark ? '<i class="ph ph-sun text-lg"></i>' : '<i class="ph ph-moon text-lg"></i>';
+  localStorage.setItem('rc-theme', dark ? 'dark' : 'light');
 }
-function setPill(state){
-  currentPillState = state;
-  modelPillText.textContent = currentPillText();
-  const map = {
-    idle:    ['bg-slate-50 dark:bg-slate-800 border-line dark:border-slate-700 text-ink-2 dark:text-slate-300','bg-slate-400'],
-    loading: ['bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300','bg-warn animate-pulse-soft'],
-    ready:   ['bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300','bg-ok'],
-    fail:    ['bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300','bg-danger'],
-  };
-  const c = map[state] || map.idle;
-  modelPill.className = 'hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs transition-colors ' + c[0];
-  modelDot.className = 'w-2 h-2 rounded-full ' + c[1];
+themeToggle.addEventListener('click', () => applyTheme(!isDark));
+const savedTheme = localStorage.getItem('rc-theme');
+if (savedTheme) applyTheme(savedTheme === 'dark');
+else applyTheme(window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+// ============ FIX #1: updateAiStatus now calls updateButtons ============
+function updateAiStatus() {
+  if (currentPillState === 'idle') { aiDot.className = 'w-2 h-2 rounded-full bg-slate-400'; aiText.textContent = 'Idle'; }
+  else if (currentPillState === 'loading') { aiDot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse'; aiText.textContent = `Loading ${currentModelPct}%`; }
+  else if (currentPillState === 'ready') { aiDot.className = 'w-2 h-2 rounded-full bg-emerald-500'; aiText.textContent = 'AI Ready'; }
+  else if (currentPillState === 'fail') { aiDot.className = 'w-2 h-2 rounded-full bg-red-500'; aiText.textContent = 'AI Error'; }
   updateButtons();
 }
 
-/* ==== THEME ==== */
-function applyTheme(dark){
-  document.documentElement.classList.toggle('dark', dark);
-  themeIconSun.classList.toggle('hidden', dark);
-  themeIconMoon.classList.toggle('hidden', !dark);
-  try { localStorage.setItem('bip-theme', dark ? 'dark' : 'light'); } catch(e){}
-}
-themeToggle.addEventListener('click', () => applyTheme(!document.documentElement.classList.contains('dark')));
-try {
-  const saved = localStorage.getItem('bip-theme');
-  if (saved) applyTheme(saved === 'dark');
-  else applyTheme(window.matchMedia('(prefers-color-scheme: dark)').matches);
-} catch(e){}
-
-/* ==== FILE SELECTION ==== */
+// ============ FILE INPUT ============
 dropZone.addEventListener('click', () => fileInput.click());
 ['dragenter','dragover'].forEach(ev => dropZone.addEventListener(ev, e => {
-  e.preventDefault(); e.stopPropagation(); dropZone.classList.add('border-accent','bg-blue-50');
+  e.preventDefault(); e.stopPropagation(); dropZone.classList.add('border-brand','bg-brand/5');
 }));
 ['dragleave','drop'].forEach(ev => dropZone.addEventListener(ev, e => {
   e.preventDefault(); e.stopPropagation();
   if (ev === 'dragleave' && dropZone.contains(e.relatedTarget)) return;
-  dropZone.classList.remove('border-accent','bg-blue-50');
+  dropZone.classList.remove('border-brand','bg-brand/5');
 }));
 dropZone.addEventListener('drop', e => { if (e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files); });
 window.addEventListener('dragover', e => e.preventDefault());
 window.addEventListener('drop', e => e.preventDefault());
 fileInput.addEventListener('change', () => { if (fileInput.files.length) addFiles(fileInput.files); fileInput.value = ''; });
-
 document.addEventListener('paste', e => {
   const files = [];
-  for (const item of e.clipboardData?.items || []){
-    if (item.type.startsWith('image/')){ const f = item.getAsFile(); if (f) files.push(f); }
+  for (const item of e.clipboardData?.items || []) {
+    if (item.type.startsWith('image/')) { const f = item.getAsFile(); if (f) files.push(f); }
   }
-  if (files.length){ addFiles(files); e.preventDefault(); }
+  if (files.length) { addFiles(files); e.preventDefault(); }
 });
 
+// ============ FIX #4: Block adding files mid-processing ============
+function addFiles(list) {
+  if (processing) {
+    showToast('Please wait for processing to finish', 'error');
+    return;
+  }
+  const incoming = Array.from(list).filter(f => f.type.startsWith('image/'));
+  if (!incoming.length) return;
+  const fmt = getOutputFormat();
+  for (const f of incoming) {
+    items.push({
+      id: ++idCounter, file: f, thumbUrl: URL.createObjectURL(f),
+      state: 'pending', progress: 0, stage: '',
+      outputName: f.name.replace(/\.[^.]+$/,'') + '.' + fmt.ext,
+      edits: defaultEdits()
+    });
+  }
+  dropZone.classList.add('hidden');
+  libraryHeader.classList.remove('hidden');
+  libraryHeader.classList.add('flex');
+  render(); updateButtons();
+  showToast(`${incoming.length} image(s) added`, 'success');
+  saveState();
+}
+
 clearBtn.addEventListener('click', () => {
+  if (processing) { showToast('Please wait for processing to finish', 'error'); return; }
   items.forEach(it => {
     if (it.thumbUrl) URL.revokeObjectURL(it.thumbUrl);
     if (it.transparentFramedUrl) URL.revokeObjectURL(it.transparentFramedUrl);
-    if (it._cropBgUrl) URL.revokeObjectURL(it._cropBgUrl);
   });
-  items = []; render(); updateButtons();
-  setStatus(t('ready')); progressFill.style.width = '0%';
-});
-function addFiles(list){
-  const incoming = Array.from(list).filter(f => f.type.startsWith('image/'));
-  if (!incoming.length){ setStatus(t('noValid'),'err'); return; }
-  const fmt = getOutputFormat();
-  for (const f of incoming){
-    items.push({ id: ++idCounter, file: f, thumbUrl: URL.createObjectURL(f), state:'pending', progress:0, stage:'', outputName: f.name.replace(/\.[^.]+$/,'') + '.' + fmt.ext });
-  }
+  items = [];
+  dropZone.classList.remove('hidden');
+  libraryHeader.classList.add('hidden');
+  libraryHeader.classList.remove('flex');
   render(); updateButtons();
-  setStatus(t('selected', items.length));
-}
-function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
-
-/* ==== UI BINDINGS ==== */
-cropPreset.addEventListener('change', () => {
-  customCropGroup.style.display = cropPreset.value === 'custom' ? 'block' : 'none';
+  saveState();
 });
 
-swatches.addEventListener('click', e => {
-  const sw = e.target.closest('.swatch'); if (!sw) return;
-  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
-  sw.classList.add('active');
-  const color = sw.dataset.color;
-  if (color === 'transparent'){
-    bgColorInput.dataset.transparent = '1';
-    colorHex.textContent = 'Transparent';
-    colorPreview.style.background = '';
-    colorPreview.classList.add('checker');
+// ============ BACKGROUND CONTROLS ============
+function updateBgModeUI() {
+  if (bgModeSelect.value === 'solid') {
+    solidBgControls.classList.remove('hidden');
+    gradientBgControls.classList.add('hidden');
   } else {
-    bgColorInput.value = color;
-    delete bgColorInput.dataset.transparent;
-    colorHex.textContent = color.toUpperCase();
-    colorPreview.classList.remove('checker');
-    colorPreview.style.background = color;
-  }
-  onColorChange();
-});
-bgColorInput.addEventListener('input', () => {
-  delete bgColorInput.dataset.transparent;
-  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
-  colorHex.textContent = bgColorInput.value.toUpperCase();
-  colorPreview.classList.remove('checker');
-  colorPreview.style.background = bgColorInput.value;
-  onColorChange();
-});
-
-function getCurrentColor(){
-  return bgColorInput.dataset.transparent === '1' ? null : bgColorInput.value;
-}
-function onColorChange(){
-  const color = getCurrentColor();
-  const thumbs = library.querySelectorAll('.card[data-state="done"] .thumb, .card.done .thumb');
-  thumbs.forEach(el => { el.style.background = color || ''; });
-  if (cropState && !cropModal.classList.contains('hidden')){
-    cropStage.style.background = color || '#ffffff';
+    solidBgControls.classList.add('hidden');
+    gradientBgControls.classList.remove('hidden');
   }
 }
-function updateButtons(){
-  const noItems = items.length === 0;
-  const aiLoading = currentPillState === 'loading';
+bgModeSelect.addEventListener('change', () => { updateBgModeUI(); onColorChange(); saveState(); });
+bgColorInput.addEventListener('input', () => { colorHex.value = bgColorInput.value.toUpperCase(); onColorChange(); saveState(); });
+colorHex.addEventListener('change', () => {
+  if (/^#[0-9A-F]{6}$/i.test(colorHex.value)) { bgColorInput.value = colorHex.value; onColorChange(); saveState(); }
+});
+document.getElementById('swatches').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  const color = btn.dataset.color;
+  if (color === 'transparent') { bgColorInput.value = '#ffffff'; colorHex.value = 'TRANSPARENT'; }
+  else { bgColorInput.value = color; colorHex.value = color.toUpperCase(); }
+  onColorChange(); saveState();
+});
+gradColor1.addEventListener('input', () => { onColorChange(); saveState(); });
+gradColor2.addEventListener('input', () => { onColorChange(); saveState(); });
+gradAngle.addEventListener('input', () => { onColorChange(); saveState(); });
 
-  if (processing){
-    processBtn.disabled = true;
-    processBtnText.textContent = t('processing');
-  } else if (noItems){
-    processBtn.disabled = true;
-    processBtnText.textContent = t('processAll');
-  } else if (aiLoading){
-    processBtn.disabled = true;
-    processBtnText.textContent = t('waitingForAI', currentModelPct);
+function getCurrentBg() {
+  if (bgModeSelect.value === 'solid') {
+    return { type: 'solid', color: colorHex.value === 'TRANSPARENT' ? null : bgColorInput.value };
+  }
+  return { type: 'gradient', c1: gradColor1.value, c2: gradColor2.value, angle: parseInt(gradAngle.value) };
+}
+
+function getBgCss(bg) {
+  if (bg.type === 'solid') return bg.color || null;
+  return `linear-gradient(${bg.angle}deg, ${bg.c1}, ${bg.c2})`;
+}
+
+function onColorChange() {
+  const bg = getCurrentBg();
+  const thumbs = library.querySelectorAll('.card[data-state="done"] .thumb');
+  thumbs.forEach(el => {
+    if (bg.type === 'solid' && !bg.color) {
+      el.style.background = '';
+      el.classList.add('checker-soft');
+    } else {
+      el.classList.remove('checker-soft');
+      el.style.background = getBgCss(bg);
+    }
+  });
+}
+
+// ============ FILTERS ============
+function buildFilter(edits) {
+  const parts = [];
+  const effBright = edits.brightness + edits.exposure;
+  if (effBright !== 100) parts.push(`brightness(${Math.max(10, effBright)}%)`);
+  if (edits.contrast !== 100) parts.push(`contrast(${edits.contrast}%)`);
+  if (edits.saturation !== 100) parts.push(`saturate(${edits.saturation}%)`);
+  if (edits.hue !== 0) parts.push(`hue-rotate(${edits.hue}deg)`);
+  if (edits.warmth !== 0) {
+    if (edits.warmth > 0) {
+      parts.push(`sepia(${Math.min(80, edits.warmth * 0.8)}%)`);
+      parts.push(`hue-rotate(-${edits.warmth * 0.15}deg)`);
+    } else {
+      parts.push(`hue-rotate(${Math.abs(edits.warmth) * 0.3}deg)`);
+    }
+  }
+  if (edits.blur > 0) parts.push(`blur(${edits.blur}px)`);
+  return parts.length ? parts.join(' ') : 'none';
+}
+
+const FILTER_PRESETS = {
+  original: defaultEdits(),
+  natural: { ...defaultEdits(), brightness: 105, contrast: 105, saturation: 108 },
+  warm:    { ...defaultEdits(), warmth: 25, saturation: 110, brightness: 103 },
+  cool:    { ...defaultEdits(), warmth: -20, saturation: 105 },
+  vivid:   { ...defaultEdits(), saturation: 135, contrast: 112 },
+  bw:      { ...defaultEdits(), saturation: 0 },
+};
+
+// ============ FIX #2: Filter only subject, not bg ============
+function applyEditsAndComposite(transparentFramed, bg, edits) {
+  const c = document.createElement('canvas');
+  c.width = transparentFramed.width;
+  c.height = transparentFramed.height;
+  const ctx = c.getContext('2d');
+  
+  // Draw bg UNFILTERED
+  ctx.filter = 'none';
+  if (bg.type === 'solid') {
+    if (bg.color) { ctx.fillStyle = bg.color; ctx.fillRect(0, 0, c.width, c.height); }
   } else {
-    processBtn.disabled = false;
-    processBtnText.textContent = t('processAll');
+    const angleRad = (bg.angle * Math.PI) / 180;
+    const x1 = c.width / 2 - Math.cos(angleRad) * c.width / 2;
+    const y1 = c.height / 2 - Math.sin(angleRad) * c.height / 2;
+    const x2 = c.width / 2 + Math.cos(angleRad) * c.width / 2;
+    const y2 = c.height / 2 + Math.sin(angleRad) * c.height / 2;
+    const grad = ctx.createLinearGradient(x1, y1, x2, y2);
+    grad.addColorStop(0, bg.c1);
+    grad.addColorStop(1, bg.c2);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, c.width, c.height);
   }
-
-  const anyDone = items.some(it => it.state === 'done' && it.transparentFramed);
-  downloadZipBtn.disabled = !anyDone || processing;
-}
-function setStatus(msg, cls){
-  statusEl.textContent = msg;
-  statusEl.className = 'text-xs mt-2 min-h-[1.1em] break-words ' +
-    (cls === 'ok' ? 'text-ok font-medium' : cls === 'err' ? 'text-danger font-medium' : 'text-ink-muted dark:text-slate-400');
-}
-function yieldUI(){ return new Promise(r => requestAnimationFrame(() => setTimeout(r, 0))); }
-function updateCardProgress(item){
-  const card = library.querySelector(`.card[data-id="${item.id}"]`);
-  if (!card) return;
-  const pct = card.querySelector('.overlay .pct');
-  const barFill = card.querySelector('.overlay .bar-fill');
-  const stage = card.querySelector('.overlay .stage');
-  if (pct) pct.textContent = Math.round(item.progress) + '%';
-  if (barFill) barFill.style.width = item.progress + '%';
-  if (stage) stage.textContent = item.stage || '';
-}
-async function setCardProgress(item, stage, pct){
-  item.stage = stage; item.progress = pct;
-  updateCardProgress(item);
-  await yieldUI();
+  
+  // Draw subject WITH filter
+  ctx.filter = buildFilter(edits);
+  ctx.drawImage(transparentFramed, 0, 0);
+  ctx.filter = 'none';
+  return c;
 }
 
-/* ==== HELPERS ==== */
+// ============ HELPERS ============
 const CROP_PRESETS = {
   'bd-passport':{w:472,h:590}, 'bd-visa':{w:413,h:531}, 'us-passport':{w:600,h:600},
   'schengen-visa':{w:413,h:531}, 'india-passport':{w:413,h:413}, 'china-visa':{w:390,h:567}, 'square':{w:500,h:500},
 };
 const AI_MAX = 512, MAX_ORIG = 1400;
 
-function getOutputFormat(){
+function getOutputFormat() {
   const v = outputFormat.value;
-  if (v === 'image/png')  return { mime:'image/png', ext:'png', opaque:false };
+  if (v === 'image/png') return { mime:'image/png', ext:'png', opaque:false };
   if (v === 'image/jpeg') return { mime:'image/jpeg', ext:'jpg', opaque:true };
   return { mime:'image/webp', ext:'webp', opaque:false };
 }
-async function detectFace(canvas){
-  if (typeof FaceDetector === 'undefined') return null;
-  try{
-    const fd = new FaceDetector({ fastMode:true, maxDetectedFaces:5 });
-    const faces = await fd.detect(canvas);
-    if (!faces.length) return null;
-    const largest = faces.reduce((a,b)=>{
-      const aA = a.boundingBox.width*a.boundingBox.height;
-      const bA = b.boundingBox.width*b.boundingBox.height;
-      return aA > bA ? a : b;
-    });
-    const bb = largest.boundingBox;
-    return { x:bb.x, y:bb.y, w:bb.width, h:bb.height };
-  }catch(e){ return null; }
+
+// ============ FIX #7: Size min/max guard ============
+function getSizeTargets() {
+  const sMinVal = parseInt(sizeMin.value) || 20;
+  const sMaxVal = parseInt(sizeMax.value) || 50;
+  return {
+    min: Math.min(sMinVal, sMaxVal) * 1024,
+    max: Math.max(sMinVal, sMaxVal) * 1024
+  };
 }
-function getTargetDims(){
+
+function getTargetDims() {
   const p = cropPreset.value;
-  if (p === 'custom'){
+  if (p === 'custom') {
     const w = parseInt(customCropW.value)||null, h = parseInt(customCropH.value)||null;
     return (w && h) ? { w, h } : null;
   }
   const pp = CROP_PRESETS[p];
   return pp ? { w: pp.w, h: pp.h } : null;
 }
-function computeDefaultCrop(srcCanvas, faceBox, targetW, targetH){
+
+async function detectFace(canvas) {
+  if (typeof FaceDetector === 'undefined') return null;
+  try {
+    const fd = new FaceDetector({ fastMode:true, maxDetectedFaces:5 });
+    const faces = await fd.detect(canvas);
+    if (!faces.length) return null;
+    const largest = faces.reduce((a,b) => {
+      const aA = a.boundingBox.width*a.boundingBox.height;
+      const bA = b.boundingBox.width*b.boundingBox.height;
+      return aA > bA ? a : b;
+    });
+    const bb = largest.boundingBox;
+    return { x:bb.x, y:bb.y, w:bb.width, h:bb.height };
+  } catch(e) { return null; }
+}
+
+function computeDefaultCrop(srcCanvas, faceBox, targetW, targetH) {
   const aspect = targetW / targetH;
   const HEAD_RATIO = 0.62, EYE_FROM_TOP = 0.38;
   let cropLeft, cropTop, cropW, cropH;
-  if (faceBox){
+  if (faceBox) {
     const faceCenterX = faceBox.x + faceBox.w / 2;
     const estimatedHeadH = faceBox.h * 1.35;
     const eyeY = faceBox.y + faceBox.h * 0.40;
-    cropH = estimatedHeadH / HEAD_RATIO;
-    cropW = cropH * aspect;
+    cropH = estimatedHeadH / HEAD_RATIO; cropW = cropH * aspect;
     const minCropH = srcCanvas.height / 3.5;
-    if (cropH < minCropH){ cropH = minCropH; cropW = cropH * aspect; }
+    if (cropH < minCropH) { cropH = minCropH; cropW = cropH * aspect; }
     cropLeft = faceCenterX - cropW / 2;
     cropTop = eyeY - cropH * EYE_FROM_TOP;
   } else {
-    cropH = srcCanvas.height * 0.85;
-    cropW = cropH * aspect;
-    if (cropW > srcCanvas.width){ cropW = srcCanvas.width; cropH = cropW / aspect; }
+    cropH = srcCanvas.height * 0.85; cropW = cropH * aspect;
+    if (cropW > srcCanvas.width) { cropW = srcCanvas.width; cropH = cropW / aspect; }
     cropLeft = (srcCanvas.width - cropW) / 2;
     cropTop = srcCanvas.height * 0.02;
   }
   return { left: cropLeft, top: cropTop, w: cropW, h: cropH };
 }
-function cropToTarget(srcCanvas, crop, targetW, targetH){
+
+function cropToTarget(srcCanvas, crop, targetW, targetH) {
   const out = document.createElement('canvas');
   out.width = targetW; out.height = targetH;
   const ctx = out.getContext('2d');
@@ -824,14 +898,15 @@ function cropToTarget(srcCanvas, crop, targetW, targetH){
   ctx.drawImage(srcCanvas, dx, dy, dw, dh);
   return out;
 }
-function trimTransparent(canvas){
+
+function trimTransparent(canvas) {
   const ctx = canvas.getContext('2d');
   const w = canvas.width, h = canvas.height;
   let data; try { data = ctx.getImageData(0,0,w,h).data; } catch(e){ return canvas; }
   let minX=w,minY=h,maxX=-1,maxY=-1;
   const step = 2;
-  for (let y=0;y<h;y+=step) for (let x=0;x<w;x+=step){
-    if (data[(y*w+x)*4+3] > 15){
+  for (let y=0;y<h;y+=step) for (let x=0;x<w;x+=step) {
+    if (data[(y*w+x)*4+3] > 15) {
       if (x<minX) minX=x; if (x>maxX) maxX=x;
       if (y<minY) minY=y; if (y>maxY) maxY=y;
     }
@@ -847,7 +922,8 @@ function trimTransparent(canvas){
   out.getContext('2d').drawImage(canvas, minX, minY, outW, outH, 0, 0, outW, outH);
   return out;
 }
-function downscaleCanvas(src, maxDim){
+
+function downscaleCanvas(src, maxDim) {
   const { width, height } = src;
   if (Math.max(width, height) <= maxDim) return src;
   const s = maxDim / Math.max(width, height);
@@ -858,26 +934,28 @@ function downscaleCanvas(src, maxDim){
   ctx.drawImage(src, 0, 0, c.width, c.height);
   return c;
 }
-function makeEncoder(canvas, mime){
+
+function makeEncoder(canvas, mime) {
   let offscreen = null;
-  if (typeof OffscreenCanvas !== 'undefined'){
-    try{ offscreen = new OffscreenCanvas(canvas.width, canvas.height); offscreen.getContext('2d').drawImage(canvas, 0, 0); }
+  if (typeof OffscreenCanvas !== 'undefined') {
+    try { offscreen = new OffscreenCanvas(canvas.width, canvas.height); offscreen.getContext('2d').drawImage(canvas, 0, 0); }
     catch(e){ offscreen = null; }
   }
-  return async function(quality){
-    if (offscreen){ try { return await offscreen.convertToBlob({ type: mime, quality }); } catch(e){} }
+  return async function(quality) {
+    if (offscreen) { try { return await offscreen.convertToBlob({ type: mime, quality }); } catch(e){} }
     return await new Promise(res => canvas.toBlob(res, mime, quality));
   };
 }
-async function encodeToTarget(canvas, targetMin, targetMax, mime){
+
+async function encodeToTarget(canvas, targetMin, targetMax, mime) {
   const encode = makeEncoder(canvas, mime);
   const targetMid = (targetMin + targetMax) / 2;
   let blob = await encode(0.75);
   if (blob && blob.size >= targetMin && blob.size <= targetMax) return blob;
   let q = 0.75;
-  if (blob){ const ratio = targetMid / blob.size; q = Math.max(0.3, Math.min(0.9, q * ratio)); blob = await encode(q); if (blob && blob.size >= targetMin && blob.size <= targetMax) return blob; }
-  if (blob){ const ratio = targetMid / blob.size; q = Math.max(0.2, Math.min(0.92, q * ratio)); blob = await encode(q); if (blob && blob.size <= targetMax) return blob; }
-  for (const maxDim of [600,400,300,200]){
+  if (blob) { const ratio = targetMid / blob.size; q = Math.max(0.3, Math.min(0.9, q * ratio)); blob = await encode(q); if (blob && blob.size >= targetMin && blob.size <= targetMax) return blob; }
+  if (blob) { const ratio = targetMid / blob.size; q = Math.max(0.2, Math.min(0.92, q * ratio)); blob = await encode(q); if (blob && blob.size <= targetMax) return blob; }
+  for (const maxDim of [600,400,300,200]) {
     const small = downscaleCanvas(canvas, maxDim);
     const enc2 = makeEncoder(small, mime);
     const b = await enc2(0.7);
@@ -885,24 +963,32 @@ async function encodeToTarget(canvas, targetMin, targetMax, mime){
   }
   return blob;
 }
-function compositeOnColor(alphaCanvas, color){
-  const c = document.createElement('canvas');
-  c.width = alphaCanvas.width; c.height = alphaCanvas.height;
-  const ctx = c.getContext('2d');
-  if (color){ ctx.fillStyle = color; ctx.fillRect(0, 0, c.width, c.height); }
-  ctx.drawImage(alphaCanvas, 0, 0);
-  return c;
-}
 
-/* ==== PROCESS ONE ==== */
-async function processItem(it){
-  const file = it.file;
+// ============ PROCESS ============
+cropPreset.addEventListener('change', () => {
+  customCropGroup.style.display = cropPreset.value === 'custom' ? 'grid' : 'none';
+  saveState();
+});
+autoFocus.addEventListener('change', saveState);
+autoEnhance.addEventListener('change', saveState);
+trimEdges.addEventListener('change', saveState);
+outputFormat.addEventListener('change', () => {
+  const fmt = getOutputFormat();
+  items.forEach(it => { if (it.state !== 'done') it.outputName = it.file.name.replace(/\.[^.]+$/, '') + '.' + fmt.ext; });
+  render(); saveState();
+});
+sizeMin.addEventListener('change', saveState);
+sizeMax.addEventListener('change', saveState);
+
+async function processItem(it) {
   it.state = 'processing';
-  await setCardProgress(it, t('loading'), 5);
+  it.progress = 5; it.stage = 'Loading image';
+  updateCardProgress(it);
+  await new Promise(r => setTimeout(r, 10));
 
   let bitmap;
-  try { bitmap = await createImageBitmap(file, { imageOrientation:'from-image' }); }
-  catch { bitmap = await createImageBitmap(file); }
+  try { bitmap = await createImageBitmap(it.file, { imageOrientation:'from-image' }); }
+  catch { bitmap = await createImageBitmap(it.file); }
 
   const scale0 = Math.min(1, MAX_ORIG / Math.max(bitmap.width, bitmap.height));
   const ow = Math.max(1, Math.round(bitmap.width*scale0));
@@ -917,13 +1003,13 @@ async function processItem(it){
   bitmap.close();
 
   let faceBox = null;
-  if (autoFocus.checked){
-    await setCardProgress(it, t('detecting'), 15);
+  if (autoFocus.checked) {
+    it.progress = 15; it.stage = 'Detecting face'; updateCardProgress(it);
     faceBox = await detectFace(original);
-    await yieldUI();
+    await new Promise(r => setTimeout(r, 10));
   }
 
-  await setCardProgress(it, t('preparing'), 30);
+  it.progress = 30; it.stage = 'Preparing AI'; updateCardProgress(it);
   const aiScale = Math.min(1, AI_MAX / Math.max(original.width, original.height));
   const aiW = Math.max(1, Math.round(original.width*aiScale));
   const aiH = Math.max(1, Math.round(original.height*aiScale));
@@ -932,47 +1018,46 @@ async function processItem(it){
   aiInput.getContext('2d').drawImage(original, 0, 0, aiW, aiH);
 
   let faceBoxAI = null;
-  if (faceBox){
+  if (faceBox) {
     const sx = aiW / original.width, sy = aiH / original.height;
     faceBoxAI = { x: faceBox.x*sx, y: faceBox.y*sy, w: faceBox.w*sx, h: faceBox.h*sy };
   }
 
-  await setCardProgress(it, t('removing'), 55);
+  it.progress = 55; it.stage = 'Removing background'; updateCardProgress(it);
   const aiBlob = await new Promise(res => aiInput.toBlob(res, 'image/png'));
-  if (!aiBlob) throw new Error('Could not prepare image for AI');
+  if (!aiBlob) throw new Error('Could not prepare image');
   const transparentBlob = await aiRemoveBg(aiBlob);
   if (!transparentBlob) throw new Error('AI returned no result');
 
-  await setCardProgress(it, t('reading'), 75);
+  it.progress = 75; it.stage = 'Reading subject'; updateCardProgress(it);
   let transparentCanvas;
   try {
     const ab = await createImageBitmap(transparentBlob);
-    if (!ab.width || !ab.height) throw new Error('Empty AI output');
     transparentCanvas = document.createElement('canvas');
     transparentCanvas.width = ab.width; transparentCanvas.height = ab.height;
     transparentCanvas.getContext('2d').drawImage(ab, 0, 0);
     ab.close();
-  } catch(e){
+  } catch(e) {
     transparentCanvas = document.createElement('canvas');
     transparentCanvas.width = aiW; transparentCanvas.height = aiH;
     transparentCanvas.getContext('2d').drawImage(aiInput, 0, 0);
   }
 
-  if (trimEdges.checked){
+  if (trimEdges.checked) {
     const trimmed = trimTransparent(transparentCanvas);
-    if (trimmed !== transparentCanvas){
+    if (trimmed !== transparentCanvas) {
       const sx = trimmed.width / transparentCanvas.width;
       const sy = trimmed.height / transparentCanvas.height;
       transparentCanvas = trimmed;
       if (faceBoxAI) faceBoxAI = { x: faceBoxAI.x*sx, y: faceBoxAI.y*sy, w: faceBoxAI.w*sx, h: faceBoxAI.h*sy };
     }
   }
-  await yieldUI();
+  await new Promise(r => setTimeout(r, 10));
 
-  await setCardProgress(it, t('framing'), 85);
+  it.progress = 85; it.stage = 'Framing'; updateCardProgress(it);
   const target = getTargetDims();
   let transparentFramed, crop;
-  if (target){
+  if (target) {
     crop = computeDefaultCrop(transparentCanvas, autoFocus.checked ? faceBoxAI : null, target.w, target.h);
     transparentFramed = cropToTarget(transparentCanvas, crop, target.w, target.h);
     it.cropLeft = crop.left; it.cropTop = crop.top;
@@ -981,8 +1066,7 @@ async function processItem(it){
     it.manualCrop = false;
   } else {
     transparentFramed = transparentCanvas;
-    it.targetW = transparentCanvas.width;
-    it.targetH = transparentCanvas.height;
+    it.targetW = transparentCanvas.width; it.targetH = transparentCanvas.height;
     it.cropLeft = 0; it.cropTop = 0;
     it.cropW = transparentCanvas.width; it.cropH = transparentCanvas.height;
     it.manualCrop = false;
@@ -990,228 +1074,272 @@ async function processItem(it){
   it.transparentCanvas = transparentCanvas;
   it.faceBoxAI = faceBoxAI;
 
-  const previewTransparent = await new Promise(res => transparentFramed.toBlob(res, 'image/png'));
+  const previewBlob = await new Promise(res => transparentFramed.toBlob(res, 'image/png'));
   if (it.transparentFramedUrl) URL.revokeObjectURL(it.transparentFramedUrl);
-  it.transparentFramedUrl = previewTransparent ? URL.createObjectURL(previewTransparent) : '';
+  it.transparentFramedUrl = previewBlob ? URL.createObjectURL(previewBlob) : '';
   it.transparentFramed = transparentFramed;
 
-  await setCardProgress(it, t('encoding'), 95);
+  it.progress = 95; it.stage = 'Encoding'; updateCardProgress(it);
   const fmt = getOutputFormat();
-  const color = getCurrentColor();
-  const effectiveColor = color || (fmt.opaque ? '#ffffff' : null);
-  const tMin = (parseInt(sizeMin.value)||20)*1024;
-  const tMax = (parseInt(sizeMax.value)||50)*1024;
-  try {
-    const composed = compositeOnColor(transparentFramed, effectiveColor);
-    const blob = await encodeToTarget(composed, tMin, tMax, fmt.mime);
-    if (blob) it.sizeKB = blob.size / 1024;
-  } catch(e){ it.sizeKB = 0; }
+  const bg = getCurrentBg();
+  const { min: tMin, max: tMax } = getSizeTargets();
+  const composed = applyEditsAndComposite(transparentFramed, bg, it.edits);
+  const blob = await encodeToTarget(composed, tMin, tMax, fmt.mime);
+  if (blob) it.sizeKB = blob.size / 1024;
 
-  const baseName = file.name.replace(/\.[^.]+$/, '');
   it.state = 'done';
-  it.outputName = `${baseName}.${fmt.ext}`;
   it.progress = 100;
-  it.stage = t('doneBadge');
+  it.outputName = it.file.name.replace(/\.[^.]+$/, '') + '.' + fmt.ext;
   it.faceDetected = !!faceBoxAI;
-  it.zoomAmount = transparentCanvas.height / (crop ? crop.h : transparentCanvas.height);
 }
 
-/* ==== PROCESS ALL ==== */
 processBtn.addEventListener('click', async () => {
   if (processing || items.length === 0) return;
-
-  if (currentPillState !== 'ready'){
-    setPill('loading');
-    showAiOverlay(currentModelPct);
-    try {
-      await ensureAiLoaded();
-      setPill('ready');
-      hideAiOverlay();
-      modelBytesByKey.clear();
-    } catch (err){
-      setPill('fail');
-      hideAiOverlay();
-      setStatus('❌ ' + err.message, 'err');
-      return;
-    }
+  if (currentPillState !== 'ready') {
+    currentPillState = 'loading'; updateAiStatus();
+    try { await ensureAiLoaded(); currentPillState = 'ready'; updateAiStatus(); modelBytesByKey.clear(); }
+    catch (err) { currentPillState = 'fail'; updateAiStatus(); showToast('AI failed to load', 'error'); return; }
   }
-
   processing = true; updateButtons();
-  progressFill.style.width = '0%';
-  setStatus(t('starting'));
-
-  for (const it of items){
-    it.state = 'pending'; it.progress = 0; it.stage = '';
-    if (it.transparentFramedUrl){ URL.revokeObjectURL(it.transparentFramedUrl); it.transparentFramedUrl = null; }
+  for (const it of items) {
+    it.state = 'pending'; it.progress = 0;
+    if (it.transparentFramedUrl) { URL.revokeObjectURL(it.transparentFramedUrl); it.transparentFramedUrl = null; }
     it.transparentFramed = null; it.transparentCanvas = null; it.sizeKB = 0; it.manualCrop = false;
   }
   render();
-
   let done = 0;
-  for (const it of items){
-    setStatus(t('processingN', done+1, items.length, it.file.name));
-    it.state = 'processing';
-    render(); await yieldUI();
-    try{ await processItem(it); }
-    catch(err){ console.error('Failed:', it.file.name, err); it.state = 'error'; it.error = err.message; }
-    done++;
-    progressFill.style.width = `${(done/items.length)*100}%`;
+  for (const it of items) {
+    it.state = 'processing'; render();
+    await new Promise(r => setTimeout(r, 10));
+    try { await processItem(it); done++; }
+    catch(err) { console.error('Failed:', it.file.name, err); it.state = 'error'; it.error = err.message; }
     render(); updateButtons();
-    await yieldUI();
   }
-  processing = false;
-  updateButtons(); render();
-  const ok = items.filter(i => i.state === 'done').length;
-  setStatus(t('doneN', ok, items.length), 'ok');
+  processing = false; updateButtons();
+  showToast(`Processed ${done}/${items.length} images`, 'success');
+  saveState();
 });
 
-/* ==== RENDER ==== */
-function render(){
-  library.innerHTML = '';
-  libCount.textContent = currentLang === 'bn'
-    ? `${items.length} টি ছবি`
-    : `${items.length} image${items.length === 1 ? '' : 's'}`;
-
-  if (!items.length){
-    library.innerHTML = `<div class="col-span-full p-12 text-center text-ink-muted dark:text-slate-400 text-sm bg-white dark:bg-slate-900 border border-line dark:border-slate-800 rounded-xl">${currentLang === 'bn' ? 'এখনো কোনো ছবি নেই। শুরু করতে ছবি ড্রপ, সিলেক্ট বা পেস্ট করুন।' : 'No images yet. Drop, select, or paste images to get started.'}</div>`;
-    return;
+function updateButtons() {
+  const hasItems = items.length > 0;
+  const aiLoading = currentPillState === 'loading';
+  const anyDone = items.some(it => it.state === 'done' && it.transparentFramed);
+  if (processing) {
+    processBtn.disabled = true;
+    processBtnText.innerHTML = `<i class="ph ph-spinner animate-spin text-lg inline-block mr-2"></i> Processing...`;
+  } else if (!hasItems) {
+    processBtn.disabled = true; processBtnText.textContent = 'Process All';
+  } else if (aiLoading) {
+    processBtn.disabled = true; processBtnText.textContent = `Wait for AI (${currentModelPct}%)`;
+  } else {
+    processBtn.disabled = false;
+    processBtnText.innerHTML = `<i class="ph ph-play-circle text-lg"></i> Process All`;
   }
+  downloadZipBtn.disabled = !anyDone || processing;
+  // Also refresh undo/redo state
+  undoBtn.disabled = processing || historyIndex <= 0;
+  redoBtn.disabled = processing || historyIndex >= history.length - 1;
+}
 
-  const currentColor = getCurrentColor();
+// ============ RENDER ============
+function render() {
+  library.innerHTML = '';
+  libCount.textContent = items.length;
+  const bg = getCurrentBg();
 
   items.forEach(it => {
     const card = document.createElement('div');
-    const isProcessing = it.state === 'processing';
-    const isDone = it.state === 'done';
-    const isError = it.state === 'error';
-
-    card.className = 'card group bg-white dark:bg-slate-900 border rounded-xl overflow-hidden relative flex flex-col transition-all hover:-translate-y-0.5 hover:shadow-md ' +
-      (isProcessing ? 'processing border-accent shadow-[0_0_0_3px_rgba(59,130,246,.15)]' :
-       isDone ? 'done border-emerald-200 dark:border-emerald-800' :
-       isError ? 'error border-red-200 dark:border-red-800' : 'pending border-line dark:border-slate-800');
+    card.className = 'card group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden relative flex flex-col shadow-soft transition-all hover:shadow-lift hover:-translate-y-0.5 select-none';
+    card.draggable = !processing;
     card.dataset.id = it.id;
     card.dataset.state = it.state;
 
-    const imgSrc = isDone && it.transparentFramedUrl ? it.transparentFramedUrl : (it.thumbUrl || '');
-    const imgTag = imgSrc ? `<img src="${imgSrc}" alt="" loading="lazy" class="max-w-full max-h-full object-contain block">` : '';
+    card.addEventListener('dragstart', handleDragStart);
+    card.addEventListener('dragover', handleDragOver);
+    card.addEventListener('drop', handleDrop);
+    card.addEventListener('dragend', handleDragEnd);
+    card.addEventListener('dragleave', handleDragLeave);
 
-    const thumbStyle = (isDone && currentColor) ? `style="background:${currentColor}"` : '';
+    const isProcessing = it.state === 'processing';
+    const isDone = it.state === 'done';
+    const isError = it.state === 'error';
+    const edits = cloneEdits(it.edits);
+    const filterCss = buildFilter(edits);
 
-    let badgeHTML = '';
-    if (it.state === 'pending')    badgeHTML = `<span class="badge pending">${t('readyBadge')}</span>`;
-    else if (it.state === 'done')  badgeHTML = `<span class="badge done">${t('doneBadge')}</span>`;
-    else if (it.state === 'error') badgeHTML = `<span class="badge error">${t('errorBadge')}</span>`;
-
-    let focusBadge = '';
-    if (isDone && it.faceDetected) focusBadge = `<span class="badge focus">${t('faceBadge')} · ${it.zoomAmount.toFixed(1)}×</span>`;
-    let manualBadge = '';
-    if (isDone && it.manualCrop) manualBadge = `<span class="badge manual">${t('croppedBadge')}</span>`;
-
-    const editHint = isDone ? `
-      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-ink/80 text-white px-3 py-1.5 rounded-full text-[0.72rem] font-semibold opacity-0 transition-opacity pointer-events-none z-[5] flex items-center gap-1.5 group-hover:opacity-100">
-        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        ${t('editCrop')}
-      </div>` : '';
-
-    const origKB = (it.file.size/1024).toFixed(0);
-    const sizeLine = (isDone && it.sizeKB)
-      ? `<span class="text-[0.7rem] text-ink-muted dark:text-slate-400">${origKB} KB → <span class="text-ok font-semibold">${it.sizeKB.toFixed(1)} KB</span></span>`
-      : `<span class="text-[0.7rem] text-ink-muted dark:text-slate-400">${origKB} KB</span>`;
-
-    const errLine = isError && it.error
-      ? `<span class="text-[0.68rem] text-danger whitespace-nowrap overflow-hidden text-ellipsis">${esc(it.error)}</span>` : '';
-
-    const overlay = `
-      <div class="overlay absolute inset-0 bg-ink/55 backdrop-blur-sm ${isProcessing ? 'flex' : 'hidden'} flex-col items-center justify-center text-white p-4 gap-2.5 z-[2]">
-        <div class="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin-fast"></div>
-        <div class="pct text-2xl font-extrabold tabular-nums tracking-tight">${Math.round(it.progress || 0)}%</div>
-        <div class="w-4/5 h-1 rounded-full bg-white/25 overflow-hidden">
-          <div class="bar-fill h-full w-0 rounded-full bg-gradient-to-r from-accent to-violet-500 transition-[width] duration-200" style="width:${it.progress || 0}%"></div>
+    let imgHtml = '';
+    if (isDone && it.transparentFramedUrl) {
+      const isTransparent = bg.type === 'solid' && !bg.color;
+      const thumbClass = isTransparent ? 'checker-soft' : '';
+      const thumbStyle = isTransparent ? '' : `background:${getBgCss(bg)}`;
+      imgHtml = `<div class="thumb w-full aspect-[4/5] relative flex items-center justify-center overflow-hidden ${thumbClass}" style="${thumbStyle}"><img src="${it.transparentFramedUrl}" style="filter:${filterCss}" class="max-w-full max-h-full object-contain pointer-events-none"></div>`;
+    } else if (isProcessing) {
+      imgHtml = `
+        <div class="thumb w-full aspect-[4/5] relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 processing-glow">
+          <div class="absolute inset-0 flex items-center justify-center">
+            <div class="relative w-24 h-24">
+              <div class="absolute inset-0 rounded-full border-2 border-brand/30 orbit-ring" style="border-top-color:#3b82f6; border-right-color:transparent"></div>
+              <div class="absolute inset-2 rounded-full border-2 border-violet-500/30 orbit-ring-slow" style="border-bottom-color:#8b5cf6; border-left-color:transparent"></div>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <div class="text-white text-2xl font-bold tabular-nums">${Math.round(it.progress)}%</div>
+              </div>
+            </div>
+          </div>
+          <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
+            <div class="text-[10px] text-white/90 uppercase tracking-wider font-semibold text-center mb-1.5">${it.stage || 'Working'}</div>
+            <div class="w-full h-1 bg-white/20 rounded-full overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-brand to-violet-500 rounded-full transition-all duration-300" style="width:${it.progress}%"></div>
+            </div>
+          </div>
         </div>
-        <div class="stage text-[0.72rem] font-medium text-center opacity-90 leading-snug max-w-[90%]">${esc(it.stage || '')}</div>
-      </div>`;
+      `;
+    } else {
+      imgHtml = `<div class="thumb w-full aspect-[4/5] relative flex items-center justify-center overflow-hidden bg-slate-50 dark:bg-slate-800/50"><img src="${it.thumbUrl}" class="max-w-full max-h-full object-contain opacity-50 pointer-events-none"></div>`;
+    }
 
-    const dlBtn = isDone ? `
-      <button class="card-download-btn absolute top-2 right-10 w-7 h-7 rounded-full bg-accent text-white border-none cursor-pointer flex items-center justify-center z-[6] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-accent-hover shadow-lg" title="${t('download')}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      </button>` : '';
+    let badgeHtml = '';
+    if (isDone) badgeHtml = `<div class="absolute top-2 left-2 bg-emerald-500/90 backdrop-blur text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm tracking-wide">DONE</div>`;
+    else if (isError) badgeHtml = `<div class="absolute top-2 left-2 bg-red-500/90 backdrop-blur text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm tracking-wide">ERROR</div>`;
 
-    card.innerHTML = `
-      <div class="thumb w-full aspect-[4/5] relative checker-soft flex items-center justify-center overflow-hidden" ${thumbStyle}>
-        ${imgTag}${overlay}${editHint}
+    let overlayHtml = '';
+    if (isDone && !processing) {
+      overlayHtml = `
+        <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 z-10">
+          <button class="edit-btn w-9 h-9 rounded-full bg-white/20 hover:bg-white/40 backdrop-blur text-white flex items-center justify-center transition-colors" title="Edit Photo"><i class="ph ph-pencil-simple text-lg"></i></button>
+          <button class="dl-btn w-9 h-9 rounded-full bg-brand hover:bg-brand-hover text-white flex items-center justify-center shadow-lg transition-colors" title="Download"><i class="ph ph-download-simple text-lg"></i></button>
+        </div>
+        <button class="remove-btn absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-900/50 hover:bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-20" title="Remove"><i class="ph ph-x text-xs"></i></button>
+      `;
+    }
+
+    let metaHtml = `
+      <div class="px-3 py-2 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-0.5 relative z-20">
+        <div class="text-[11px] font-medium text-slate-700 dark:text-slate-300 truncate" title="${it.file.name}">${it.file.name}</div>
+        <div class="flex justify-between items-center text-[10px] text-slate-400">
+          <span>${(it.file.size/1024).toFixed(0)} KB</span>
+          ${isDone && it.sizeKB ? `<span class="text-emerald-500 font-medium">→ ${it.sizeKB.toFixed(0)} KB</span>` : ''}
+        </div>
       </div>
-      ${badgeHTML}${focusBadge}${manualBadge}
-      <button class="remove-btn absolute top-2 right-2 w-7 h-7 rounded-full bg-ink/60 text-white border-none cursor-pointer flex items-center justify-center text-sm leading-none p-0 z-[6] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-danger" title="Remove">×</button>
-      ${dlBtn}
-      <div class="px-2.5 py-2 border-t border-line dark:border-slate-800 flex flex-col gap-0.5 bg-white dark:bg-slate-900">
-        <span class="text-[0.75rem] font-medium whitespace-nowrap overflow-hidden text-ellipsis text-ink dark:text-slate-100" title="${esc(it.outputName || it.file.name)}">${esc(it.outputName || it.file.name)}</span>
-        ${sizeLine}${errLine}
-      </div>`;
+    `;
 
-    card.querySelector('.remove-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (it.thumbUrl) URL.revokeObjectURL(it.thumbUrl);
-      if (it.transparentFramedUrl) URL.revokeObjectURL(it.transparentFramedUrl);
-      if (it._cropBgUrl) URL.revokeObjectURL(it._cropBgUrl);
-      items = items.filter(x => x !== it);
-      render(); updateButtons();
-    });
+    card.innerHTML = `${imgHtml}${badgeHtml}${overlayHtml}${metaHtml}`;
 
-    const dl = card.querySelector('.card-download-btn');
-    if (dl) dl.addEventListener('click', async (e) => { e.stopPropagation(); await downloadOne(it); });
+    if (isDone) {
+      card.querySelector('.edit-btn').addEventListener('click', (e) => { e.stopPropagation(); openEditModal(it); });
+      card.querySelector('.dl-btn').addEventListener('click', async (e) => { e.stopPropagation(); await downloadOne(it); });
+      card.querySelector('.remove-btn').addEventListener('click', (e) => { e.stopPropagation(); removeItem(it.id); });
+    }
 
-    card.addEventListener('click', (e) => {
-      if (e.target.closest('.remove-btn') || e.target.closest('.card-download-btn')) return;
-      if (it.state === 'done' && it.transparentCanvas) openCropModal(it);
-    });
     library.appendChild(card);
   });
+
+  if (items.length > 0) {
+    dropZone.classList.add('hidden');
+    libraryHeader.classList.remove('hidden');
+    libraryHeader.classList.add('flex');
+  } else {
+    dropZone.classList.remove('hidden');
+    libraryHeader.classList.add('hidden');
+    libraryHeader.classList.remove('flex');
+  }
 }
 
-/* ==== DOWNLOAD ==== */
-async function getFinalBlob(item){
-  const fmt = getOutputFormat();
-  const color = getCurrentColor();
-  const effectiveColor = color || (fmt.opaque ? '#ffffff' : null);
-  const tMin = (parseInt(sizeMin.value)||20)*1024;
-  const tMax = (parseInt(sizeMax.value)||50)*1024;
-  const composed = compositeOnColor(item.transparentFramed, effectiveColor);
-  return await encodeToTarget(composed, tMin, tMax, fmt.mime);
+function updateCardProgress(item) {
+  const card = library.querySelector(`.card[data-id="${item.id}"]`);
+  if (!card) return;
+  const pct = card.querySelector('.text-2xl.tabular-nums');
+  const barEl = card.querySelector('.bg-white\\/20 > div');
+  const stage = card.querySelector('.processing-glow .text-\\[10px\\]');
+  if (pct) pct.textContent = Math.round(item.progress) + '%';
+  if (barEl) barEl.style.width = item.progress + '%';
+  if (stage) stage.textContent = item.stage || 'Working';
 }
-function saveBlob(blob, filename){
+
+function removeItem(id) {
+  if (processing) { showToast('Please wait for processing to finish', 'error'); return; }
+  const it = items.find(i => i.id === id);
+  if (!it) return;
+  if (it.thumbUrl) URL.revokeObjectURL(it.thumbUrl);
+  if (it.transparentFramedUrl) URL.revokeObjectURL(it.transparentFramedUrl);
+  items = items.filter(x => x.id !== id);
+  render(); updateButtons(); saveState();
+}
+
+// ============ DRAG & DROP REORDER ============
+let dragSrcId = null;
+function handleDragStart(e) {
+  if (processing) { e.preventDefault(); return; }
+  dragSrcId = parseInt(this.dataset.id);
+  this.classList.add('opacity-40');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', dragSrcId);
+}
+function handleDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; this.classList.add('ring-2','ring-brand'); }
+function handleDragLeave() { this.classList.remove('ring-2','ring-brand'); }
+function handleDrop(e) {
+  e.stopPropagation();
+  this.classList.remove('ring-2','ring-brand');
+  const targetId = parseInt(this.dataset.id);
+  if (dragSrcId !== null && dragSrcId !== targetId) {
+    const srcIdx = items.findIndex(i => i.id === dragSrcId);
+    const tgtIdx = items.findIndex(i => i.id === targetId);
+    if (srcIdx > -1 && tgtIdx > -1) {
+      const [moved] = items.splice(srcIdx, 1);
+      items.splice(tgtIdx, 0, moved);
+      render(); saveState();
+    }
+  }
+}
+function handleDragEnd() {
+  this.classList.remove('opacity-40');
+  library.querySelectorAll('.card').forEach(c => c.classList.remove('ring-2','ring-brand'));
+  dragSrcId = null;
+}
+
+// ============ DOWNLOADS ============
+function saveBlob(blob, filename) {
   if (!blob || !blob.size) return false;
-  try{
+  try {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = filename; a.rel = 'noopener';
     document.body.appendChild(a); a.click();
     setTimeout(() => { try { a.remove(); }catch{} URL.revokeObjectURL(url); }, 60000);
     return true;
-  }catch(e){ return false; }
+  } catch(e) { return false; }
 }
-async function downloadOne(item){
+
+async function getFinalBlob(item) {
+  const fmt = getOutputFormat();
+  const bg = getCurrentBg();
+  const { min: tMin, max: tMax } = getSizeTargets();
+  const composed = applyEditsAndComposite(item.transparentFramed, bg, cloneEdits(item.edits));
+  return await encodeToTarget(composed, tMin, tMax, fmt.mime);
+}
+
+async function downloadOne(item) {
   if (!item.transparentFramed) return;
   const fmt = getOutputFormat();
   const blob = await getFinalBlob(item);
-  if (!blob){ setStatus('❌ Download failed.', 'err'); return; }
+  if (!blob) { showToast('Download failed', 'error'); return; }
   const name = item.file.name.replace(/\.[^.]+$/, '') + '.' + fmt.ext;
   saveBlob(blob, name);
-  setStatus(`✅ ${name}`, 'ok');
+  showToast(`Saved ${name}`, 'success');
 }
+
 downloadZipBtn.addEventListener('click', async () => {
   const ready = items.filter(it => it.state === 'done' && it.transparentFramed);
-  if (!ready.length){ setStatus(t('nothingToDownload'),'err'); return; }
-  if (typeof JSZip === 'undefined'){ setStatus('❌ ZIP library failed.','err'); return; }
-  setStatus(t('buildingZip'));
+  if (!ready.length) return;
+  if (typeof JSZip === 'undefined') { showToast('ZIP library missing', 'error'); return; }
+  showToast('Building ZIP...', 'info');
   try {
     const fmt = getOutputFormat();
     const zip = new JSZip();
     const used = new Set();
-    for (const it of ready){
+    for (const it of ready) {
       const blob = await getFinalBlob(it);
       if (!blob) continue;
       let name = it.file.name.replace(/\.[^.]+$/, '') + '.' + fmt.ext;
-      if (used.has(name)){
+      if (used.has(name)) {
         const b = name.replace(/\.[^.]+$/, '');
         const ext = name.split('.').pop();
         let n = 2;
@@ -1223,31 +1351,89 @@ downloadZipBtn.addEventListener('click', async () => {
     }
     const zipBlob = await zip.generateAsync({ type:'blob', compression:'DEFLATE', compressionOptions:{ level:6 } });
     if (!zipBlob || !zipBlob.size) throw new Error('ZIP empty');
-    const ok = saveBlob(zipBlob, 'readychobi-photos.zip');
-    if (ok) setStatus(t('zipDone', (zipBlob.size/1024).toFixed(1)),'ok');
-    else setStatus(t('zipFail'),'err');
-  } catch(e){ setStatus(t('zipFail'),'err'); }
-});
-outputFormat.addEventListener('change', () => {
-  const fmt = getOutputFormat();
-  items.forEach(it => { if (it.state !== 'done') it.outputName = it.file.name.replace(/\.[^.]+$/, '') + '.' + fmt.ext; });
-  render();
+    saveBlob(zipBlob, 'readychobi-photos.zip');
+    showToast(`ZIP downloaded (${(zipBlob.size/1024).toFixed(0)} KB)`, 'success');
+  } catch(e) { showToast('ZIP creation failed', 'error'); }
 });
 
-/* ==== CROP MODAL ==== */
-function openCropModal(item){
+// ============ EDIT MODAL ============
+function openEditModal(item) {
   if (item.state !== 'done' || !item.transparentCanvas) return;
+  
+  editSession = {
+    item,
+    tab: 'crop',
+    cropState: null,
+    edits: cloneEdits(item.edits),
+    history: [],
+    historyIdx: -1
+  };
+
+  setupCropUI(item);
+  setupFiltersUI(item);
+  showTab('crop');
+  
+  editModal.classList.remove('hidden');
+  editModal.classList.add('flex');
+}
+
+function closeEditModal() {
+  editModal.classList.add('hidden');
+  editModal.classList.remove('flex');
+  if (editSession && editSession.item && editSession.item._cropBgUrl) {
+    URL.revokeObjectURL(editSession.item._cropBgUrl);
+    editSession.item._cropBgUrl = null;
+  }
+  editSession = null;
+}
+
+editModalClose.addEventListener('click', closeEditModal);
+editCancel.addEventListener('click', closeEditModal);
+editModal.addEventListener('click', e => { if (e.target === editModal) closeEditModal(); });
+document.addEventListener('keydown', e => {
+  if (!editModal.classList.contains('hidden')) {
+    if (e.key === 'Escape') closeEditModal();
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); cropUndoBtn.click(); }
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) { e.preventDefault(); cropRedoBtn.click(); }
+  }
+});
+
+function showTab(tab) {
+  if (!editSession) return;
+  editSession.tab = tab;
+  if (tab === 'crop') {
+    tabCrop.className = 'tab-btn px-4 py-1.5 rounded-md text-xs font-semibold transition-all bg-white/10 text-white';
+    tabFilters.className = 'tab-btn px-4 py-1.5 rounded-md text-xs font-semibold transition-all text-white/60 hover:text-white';
+    panelCrop.classList.remove('hidden');
+    panelFilters.classList.add('hidden');
+    panelFilters.classList.remove('flex');
+    updateCropUndoRedoButtons();
+  } else {
+    tabFilters.className = 'tab-btn px-4 py-1.5 rounded-md text-xs font-semibold transition-all bg-white/10 text-white';
+    tabCrop.className = 'tab-btn px-4 py-1.5 rounded-md text-xs font-semibold transition-all text-white/60 hover:text-white';
+    panelFilters.classList.remove('hidden');
+    panelFilters.classList.add('flex');
+    panelCrop.classList.add('hidden');
+    cropUndoBtn.disabled = true;
+    cropRedoBtn.disabled = true;
+  }
+}
+tabCrop.addEventListener('click', () => showTab('crop'));
+tabFilters.addEventListener('click', () => showTab('filters'));
+
+// --- Crop UI ---
+function setupCropUI(item) {
   const cw = item.transparentCanvas.width;
   const ch = item.transparentCanvas.height;
-  const maxW = Math.min(620, window.innerWidth - 80);
-  const maxH = Math.min(520, window.innerHeight - 260);
+  const maxW = window.innerWidth - 160;
+  const maxH = window.innerHeight - 200;
   const scale = Math.min(maxW / cw, maxH / ch, 1);
   const stageW = Math.round(cw * scale);
   const stageH = Math.round(ch * scale);
 
   cropStage.style.width = stageW + 'px';
   cropStage.style.height = stageH + 'px';
-  cropStage.style.background = getCurrentColor() || '#ffffff';
+  cropStage.style.background = getBgCss(getCurrentBg()) || 'transparent';
 
   item.transparentCanvas.toBlob(blob => {
     if (item._cropBgUrl) URL.revokeObjectURL(item._cropBgUrl);
@@ -1268,224 +1454,305 @@ function openCropModal(item){
   rect.x = Math.max(0, Math.min(stageW - rect.w, rect.x));
   rect.y = Math.max(0, Math.min(stageH - rect.h, rect.y));
 
-  cropState = { item, cw, ch, scale, stageW, stageH, aspect, rect, minSize: 40,
+  editSession.cropState = {
+    cw, ch, scale, stageW, stageH, aspect, rect, minSize: 40,
     dragging: null, startX: 0, startY: 0, startRect: null,
-    history: [{ ...rect }], historyIdx: 0 };
-  updateCropRectEl(); updateUndoRedoButtons();
-  cropModal.classList.remove('hidden'); cropModal.classList.add('flex');
+    history: [{ ...rect }], historyIdx: 0
+  };
+
+  updateCropRectEl();
+  updateCropUndoRedoButtons();
 }
-function closeCropModal(){ cropModal.classList.add('hidden'); cropModal.classList.remove('flex'); cropState = null; }
-function updateCropRectEl(){
-  if (!cropState) return;
-  const r = cropState.rect;
+
+function updateCropRectEl() {
+  if (!editSession || !editSession.cropState) return;
+  const r = editSession.cropState.rect;
   cropRect.style.left = r.x + 'px'; cropRect.style.top = r.y + 'px';
   cropRect.style.width = r.w + 'px'; cropRect.style.height = r.h + 'px';
-  const srcW = Math.round(r.w / cropState.scale);
-  const srcH = Math.round(r.h / cropState.scale);
-  cropDims.textContent = `${srcW}×${srcH} px → ${cropState.item.targetW}×${cropState.item.targetH} px`;
 }
-function pushCropHistory(){
-  if (!cropState) return;
-  const h = cropState.history.slice(0, cropState.historyIdx + 1);
-  h.push({ ...cropState.rect });
+
+function pushCropHistory() {
+  if (!editSession || !editSession.cropState) return;
+  const cs = editSession.cropState;
+  const h = cs.history.slice(0, cs.historyIdx + 1);
+  h.push({ ...cs.rect });
   if (h.length > 30) h.shift();
-  cropState.history = h; cropState.historyIdx = h.length - 1;
-  updateUndoRedoButtons();
+  cs.history = h; cs.historyIdx = h.length - 1;
+  updateCropUndoRedoButtons();
 }
-function updateUndoRedoButtons(){
-  if (!cropState) return;
-  cropUndo.disabled = cropState.historyIdx <= 0;
-  cropRedo.disabled = cropState.historyIdx >= cropState.history.length - 1;
-}
-cropUndo.addEventListener('click', () => {
-  if (!cropState || cropState.historyIdx <= 0) return;
-  cropState.historyIdx--;
-  cropState.rect = { ...cropState.history[cropState.historyIdx] };
-  updateCropRectEl(); updateUndoRedoButtons();
-});
-cropRedo.addEventListener('click', () => {
-  if (!cropState || cropState.historyIdx >= cropState.history.length - 1) return;
-  cropState.historyIdx++;
-  cropState.rect = { ...cropState.history[cropState.historyIdx] };
-  updateCropRectEl(); updateUndoRedoButtons();
-});
-cropModalClose.addEventListener('click', closeCropModal);
-cropCancel.addEventListener('click', closeCropModal);
-cropModal.addEventListener('click', e => { if (e.target === cropModal) closeCropModal(); });
-document.addEventListener('keydown', e => {
-  if (!cropModal.classList.contains('hidden')){
-    if (e.key === 'Escape') closeCropModal();
-    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey){ e.preventDefault(); cropUndo.click(); }
-    if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))){ e.preventDefault(); cropRedo.click(); }
+
+function updateCropUndoRedoButtons() {
+  if (!editSession || !editSession.cropState || editSession.tab !== 'crop') {
+    cropUndoBtn.disabled = true; cropRedoBtn.disabled = true;
+    return;
   }
+  cropUndoBtn.disabled = editSession.cropState.historyIdx <= 0;
+  cropRedoBtn.disabled = editSession.cropState.historyIdx >= editSession.cropState.history.length - 1;
+}
+
+cropUndoBtn.addEventListener('click', () => {
+  if (!editSession || !editSession.cropState) return;
+  const cs = editSession.cropState;
+  if (cs.historyIdx <= 0) return;
+  cs.historyIdx--;
+  cs.rect = { ...cs.history[cs.historyIdx] };
+  updateCropRectEl(); updateCropUndoRedoButtons();
 });
+cropRedoBtn.addEventListener('click', () => {
+  if (!editSession || !editSession.cropState) return;
+  const cs = editSession.cropState;
+  if (cs.historyIdx >= cs.history.length - 1) return;
+  cs.historyIdx++;
+  cs.rect = { ...cs.history[cs.historyIdx] };
+  updateCropRectEl(); updateCropUndoRedoButtons();
+});
+
 cropRect.addEventListener('pointerdown', e => {
-  if (!cropState) return;
+  if (!editSession || !editSession.cropState) return;
   e.preventDefault(); e.stopPropagation();
-  cropState.dragging = e.target.dataset.h || 'move';
-  cropState.startX = e.clientX; cropState.startY = e.clientY;
-  cropState.startRect = { ...cropState.rect };
+  const cs = editSession.cropState;
+  cs.dragging = e.target.dataset.h || 'move';
+  cs.startX = e.clientX; cs.startY = e.clientY;
+  cs.startRect = { ...cs.rect };
   cropRect.setPointerCapture(e.pointerId);
 });
 cropRect.addEventListener('pointermove', e => {
-  if (!cropState || !cropState.dragging) return;
-  const dx = e.clientX - cropState.startX, dy = e.clientY - cropState.startY;
-  const sr = cropState.startRect;
-  const { stageW, stageH, aspect, minSize } = cropState;
+  if (!editSession || !editSession.cropState || !editSession.cropState.dragging) return;
+  const cs = editSession.cropState;
+  const dx = e.clientX - cs.startX, dy = e.clientY - cs.startY;
+  const sr = cs.startRect;
+  const { stageW, stageH, aspect, minSize } = cs;
   let r = { ...sr };
-  if (cropState.dragging === 'move'){
+  if (cs.dragging === 'move') {
     r.x = Math.max(0, Math.min(stageW - r.w, sr.x + dx));
     r.y = Math.max(0, Math.min(stageH - r.h, sr.y + dy));
   } else {
-    const h = cropState.dragging;
+    const h = cs.dragging;
     let newW = sr.w, newH = sr.h;
-    if (h === 'se'){ newW = sr.w+dx; newH = newW/aspect;
-      if (sr.x+newW>stageW){ newW=stageW-sr.x; newH=newW/aspect; }
-      if (sr.y+newH>stageH){ newH=stageH-sr.y; newW=newH*aspect; } }
-    else if (h === 'nw'){ newW = sr.w-dx; newH = newW/aspect;
-      if (sr.x+sr.w-newW<0){ newW=sr.x+sr.w; newH=newW/aspect; }
-      if (sr.y+sr.h-newH<0){ newH=sr.y+sr.h; newW=newH*aspect; }
+    if (h === 'se') { newW = sr.w+dx; newH = newW/aspect;
+      if (sr.x+newW>stageW) { newW=stageW-sr.x; newH=newW/aspect; }
+      if (sr.y+newH>stageH) { newH=stageH-sr.y; newW=newH*aspect; } }
+    else if (h === 'nw') { newW = sr.w-dx; newH = newW/aspect;
+      if (sr.x+sr.w-newW<0) { newW=sr.x+sr.w; newH=newW/aspect; }
+      if (sr.y+sr.h-newH<0) { newH=sr.y+sr.h; newW=newH*aspect; }
       r.x = sr.x+sr.w-newW; r.y = sr.y+sr.h-newH; }
-    else if (h === 'ne'){ newW = sr.w+dx; newH = newW/aspect;
-      if (sr.x+newW>stageW){ newW=stageW-sr.x; newH=newW/aspect; }
-      if (sr.y+sr.h-newH<0){ newH=sr.y+sr.h; newW=newH*aspect; }
+    else if (h === 'ne') { newW = sr.w+dx; newH = newW/aspect;
+      if (sr.x+newW>stageW) { newW=stageW-sr.x; newH=newW/aspect; }
+      if (sr.y+sr.h-newH<0) { newH=sr.y+sr.h; newW=newH*aspect; }
       r.y = sr.y+sr.h-newH; }
-    else if (h === 'sw'){ newW = sr.w-dx; newH = newW/aspect;
-      if (sr.x+sr.w-newW<0){ newW=sr.x+sr.w; newH=newW/aspect; }
-      if (sr.y+newH>stageH){ newH=stageH-sr.y; newW=newH*aspect; }
+    else if (h === 'sw') { newW = sr.w-dx; newH = newW/aspect;
+      if (sr.x+sr.w-newW<0) { newW=sr.x+sr.w; newH=newW/aspect; }
+      if (sr.y+newH>stageH) { newH=stageH-sr.y; newW=newH*aspect; }
       r.x = sr.x+sr.w-newW; }
-    if (newW < minSize){ newW = minSize; newH = newW/aspect; }
+    if (newW < minSize) { newW = minSize; newH = newW/aspect; }
     r.w = newW; r.h = newH;
   }
-  cropState.rect = r; updateCropRectEl();
+  cs.rect = r;
+  updateCropRectEl();
 });
-function endDrag(){ if (cropState && cropState.dragging){ cropState.dragging = null; pushCropHistory(); } }
+function endDrag() {
+  if (editSession && editSession.cropState && editSession.cropState.dragging) {
+    editSession.cropState.dragging = null;
+    pushCropHistory();
+  }
+}
 cropRect.addEventListener('pointerup', endDrag);
 cropRect.addEventListener('pointercancel', endDrag);
 
-cropReset.addEventListener('click', () => {
-  if (!cropState) return;
-  const item = cropState.item;
-  const faceBox = autoFocus.checked ? item.faceBoxAI : null;
-  const def = computeDefaultCrop(item.transparentCanvas, faceBox, item.targetW, item.targetH);
-  const s = cropState.scale;
-  cropState.rect = {
-    x: Math.max(0, def.left*s), y: Math.max(0, def.top*s),
-    w: Math.min(cropState.stageW, def.w*s), h: Math.min(cropState.stageH, def.h*s),
-  };
-  cropState.rect.x = Math.max(0, Math.min(cropState.stageW - cropState.rect.w, cropState.rect.x));
-  cropState.rect.y = Math.max(0, Math.min(cropState.stageH - cropState.rect.h, cropState.rect.y));
-  updateCropRectEl(); pushCropHistory();
+// --- Filters UI ---
+function setupFiltersUI(item) {
+  const bg = getCurrentBg();
+  const bgCss = getBgCss(bg);
+  if (bg.type === 'solid' && !bg.color) {
+    editPreviewStage.style.background = '';
+    editPreviewStage.classList.add('checker-soft');
+  } else {
+    editPreviewStage.classList.remove('checker-soft');
+    editPreviewStage.style.background = bgCss;
+  }
+  
+  if (!item.transparentFramedUrl) {
+    item.transparentFramed.toBlob(blob => {
+      if (blob) {
+        if (item.transparentFramedUrl) URL.revokeObjectURL(item.transparentFramedUrl);
+        item.transparentFramedUrl = URL.createObjectURL(blob);
+        editPreviewImg.src = item.transparentFramedUrl;
+        applyPreviewFilter();
+      }
+    }, 'image/png');
+  } else {
+    editPreviewImg.src = item.transparentFramedUrl;
+    applyPreviewFilter();
+  }
+  
+  $('f_brightness').value = editSession.edits.brightness;
+  $('f_exposure').value = editSession.edits.exposure;
+  $('f_contrast').value = editSession.edits.contrast;
+  $('f_saturation').value = editSession.edits.saturation;
+  $('f_hue').value = editSession.edits.hue;
+  $('f_warmth').value = editSession.edits.warmth;
+  $('f_blur').value = editSession.edits.blur;
+  updateEditValuesUI();
+}
+
+// ============ FIX #3: Filter only img, not stage ============
+function applyPreviewFilter() {
+  if (!editSession) return;
+  const filter = buildFilter(editSession.edits);
+  editPreviewImg.style.filter = filter;
+}
+
+function updateEditValuesUI() {
+  if (!editSession) return;
+  const e = editSession.edits;
+  document.querySelector('.edit-val[data-for="brightness"]').textContent = e.brightness + '%';
+  document.querySelector('.edit-val[data-for="exposure"]').textContent = (e.exposure > 0 ? '+' : '') + e.exposure;
+  document.querySelector('.edit-val[data-for="contrast"]').textContent = e.contrast + '%';
+  document.querySelector('.edit-val[data-for="saturation"]').textContent = e.saturation + '%';
+  document.querySelector('.edit-val[data-for="hue"]').textContent = e.hue + '°';
+  document.querySelector('.edit-val[data-for="warmth"]').textContent = e.warmth;
+  document.querySelector('.edit-val[data-for="blur"]').textContent = e.blur + 'px';
+}
+
+['brightness','exposure','contrast','saturation','hue','warmth','blur'].forEach(key => {
+  const el = $(`f_${key}`);
+  if (!el) return;
+  el.addEventListener('input', () => {
+    if (!editSession) return;
+    editSession.edits[key] = parseInt(el.value);
+    updateEditValuesUI();
+    applyPreviewFilter();
+  });
 });
-cropApply.addEventListener('click', async () => {
-  if (!cropState) return;
-  const item = cropState.item, s = cropState.scale, r = cropState.rect;
-  item.cropLeft = r.x/s; item.cropTop = r.y/s; item.cropW = r.w/s; item.cropH = r.h/s;
+
+filterPresets.addEventListener('click', e => {
+  const btn = e.target.closest('.filter-preset');
+  if (!btn || !editSession) return;
+  const preset = FILTER_PRESETS[btn.dataset.preset];
+  if (!preset) return;
+  editSession.edits = { ...preset };
+  $('f_brightness').value = preset.brightness;
+  $('f_exposure').value = preset.exposure;
+  $('f_contrast').value = preset.contrast;
+  $('f_saturation').value = preset.saturation;
+  $('f_hue').value = preset.hue;
+  $('f_warmth').value = preset.warmth;
+  $('f_blur').value = preset.blur;
+  updateEditValuesUI();
+  applyPreviewFilter();
+});
+
+editReset.addEventListener('click', () => {
+  if (!editSession) return;
+  const item = editSession.item;
+  editSession.edits = { ...defaultEdits() };
+  ['brightness','exposure','contrast','saturation','hue','warmth','blur'].forEach(k => {
+    $(`f_${k}`).value = defaultEdits()[k];
+  });
+  updateEditValuesUI();
+  applyPreviewFilter();
+  
+  if (editSession.cropState) {
+    const faceBox = autoFocus.checked ? item.faceBoxAI : null;
+    const def = computeDefaultCrop(item.transparentCanvas, faceBox, item.targetW, item.targetH);
+    const s = editSession.cropState.scale;
+    editSession.cropState.rect = {
+      x: Math.max(0, def.left*s), y: Math.max(0, def.top*s),
+      w: Math.min(editSession.cropState.stageW, def.w*s), h: Math.min(editSession.cropState.stageH, def.h*s),
+    };
+    editSession.cropState.rect.x = Math.max(0, Math.min(editSession.cropState.stageW - editSession.cropState.rect.w, editSession.cropState.rect.x));
+    editSession.cropState.rect.y = Math.max(0, Math.min(editSession.cropState.stageH - editSession.cropState.rect.h, editSession.cropState.rect.y));
+    updateCropRectEl();
+    pushCropHistory();
+  }
+  showToast('Reset to defaults', 'info');
+});
+
+// ============ FIX #9: Safe async Apply ============
+editApply.addEventListener('click', async () => {
+  if (!editSession) return;
+  const session = editSession;
+  const item = session.item;
+  const cs = session.cropState;
+  const edits = cloneEdits(session.edits);
+  
+  const s = cs.scale;
+  const r = cs.rect;
+  
+  item.cropLeft = r.x/s;
+  item.cropTop = r.y/s;
+  item.cropW = r.w/s;
+  item.cropH = r.h/s;
   item.manualCrop = true;
+  item.edits = edits;
+  
   item.transparentFramed = cropToTarget(item.transparentCanvas,
     { left: item.cropLeft, top: item.cropTop, w: item.cropW, h: item.cropH },
     item.targetW, item.targetH);
+  
   const previewBlob = await new Promise(res => item.transparentFramed.toBlob(res, 'image/png'));
-  if (item.transparentFramedUrl) URL.revokeObjectURL(item.transparentFramedUrl);
-  item.transparentFramedUrl = previewBlob ? URL.createObjectURL(previewBlob) : '';
-  closeCropModal();
+  if (previewBlob) {
+    if (item.transparentFramedUrl) URL.revokeObjectURL(item.transparentFramedUrl);
+    item.transparentFramedUrl = URL.createObjectURL(previewBlob);
+  }
+  
+  // Safe close — only closes if still open
+  if (editSession === session) closeEditModal();
+  
   const fmt = getOutputFormat();
-  const color = getCurrentColor();
-  const effectiveColor = color || (fmt.opaque ? '#ffffff' : null);
-  const tMin = (parseInt(sizeMin.value)||20)*1024, tMax = (parseInt(sizeMax.value)||50)*1024;
-  const composed = compositeOnColor(item.transparentFramed, effectiveColor);
+  const bg = getCurrentBg();
+  const { min: tMin, max: tMax } = getSizeTargets();
+  const composed = applyEditsAndComposite(item.transparentFramed, bg, item.edits);
   const blob = await encodeToTarget(composed, tMin, tMax, fmt.mime);
   if (blob) item.sizeKB = blob.size / 1024;
+  
   render();
+  saveState();
+  showToast('Changes applied', 'success');
 });
 
-/* ==== PRESETS ==== */
-function loadPresets(){ try { return JSON.parse(localStorage.getItem('bip-presets') || '{}'); } catch(e){ return {}; } }
-function savePresets(p){ try { localStorage.setItem('bip-presets', JSON.stringify(p)); } catch(e){} }
-function refreshPresetDropdown(){
-  const presets = loadPresets();
-  presetSelect.innerHTML = '<option value="">—</option>';
-  Object.keys(presets).forEach(name => {
-    const opt = document.createElement('option');
-    opt.value = name; opt.textContent = name;
-    presetSelect.appendChild(opt);
-  });
-}
-presetSelect.addEventListener('change', () => {
-  const name = presetSelect.value; if (!name) return;
-  const p = loadPresets()[name]; if (!p) return;
-  if (p.cropPreset) cropPreset.value = p.cropPreset;
-  if (p.customCropW) customCropW.value = p.customCropW;
-  if (p.customCropH) customCropH.value = p.customCropH;
-  if (p.autoFocus !== undefined) autoFocus.checked = p.autoFocus;
-  if (p.autoEnhance !== undefined) autoEnhance.checked = p.autoEnhance;
-  if (p.trimEdges !== undefined) trimEdges.checked = p.trimEdges;
-  if (p.outputFormat) outputFormat.value = p.outputFormat;
-  if (p.sizeMin) sizeMin.value = p.sizeMin;
-  if (p.sizeMax) sizeMax.value = p.sizeMax;
-  if (p.bgColor){
-    bgColorInput.value = p.bgColor;
-    delete bgColorInput.dataset.transparent;
-    colorHex.textContent = p.bgColor.toUpperCase();
-    colorPreview.style.background = p.bgColor;
-    document.querySelectorAll('.swatch').forEach(s => s.classList.toggle('active', s.dataset.color === p.bgColor));
+// ============ LANGUAGE ============
+langToggle.addEventListener('click', () => {
+  currentLang = currentLang === 'en' ? 'bn' : 'en';
+  langToggle.textContent = currentLang === 'en' ? 'বাং' : 'EN';
+  showToast(currentLang === 'bn' ? 'ভাষা পরিবর্তন (সীমিত)' : 'Language switched (partial)', 'info');
+});
+
+// ============ GLOBAL SHORTCUTS ============
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey && editModal.classList.contains('hidden')) {
+    e.preventDefault(); undoBtn.click();
   }
-  customCropGroup.style.display = cropPreset.value === 'custom' ? 'block' : 'none';
-  onColorChange();
-  setStatus(t('presetLoaded', name), 'ok');
-});
-savePresetBtn.addEventListener('click', () => {
-  presetName.value = '';
-  presetModal.classList.remove('hidden'); presetModal.classList.add('flex');
-  setTimeout(() => presetName.focus(), 50);
-});
-presetCancel.addEventListener('click', () => { presetModal.classList.add('hidden'); presetModal.classList.remove('flex'); });
-presetSave.addEventListener('click', () => {
-  const name = presetName.value.trim(); if (!name) return;
-  const presets = loadPresets();
-  presets[name] = {
-    cropPreset: cropPreset.value, customCropW: customCropW.value, customCropH: customCropH.value,
-    autoFocus: autoFocus.checked, autoEnhance: autoEnhance.checked, trimEdges: trimEdges.checked,
-    outputFormat: outputFormat.value, sizeMin: sizeMin.value, sizeMax: sizeMax.value,
-    bgColor: getCurrentColor() || '#ACC0FB',
-  };
-  savePresets(presets); refreshPresetDropdown(); presetSelect.value = name;
-  presetModal.classList.add('hidden'); presetModal.classList.remove('flex');
-  setStatus(t('presetSaved', name), 'ok');
-});
-deletePresetBtn.addEventListener('click', () => {
-  const name = presetSelect.value;
-  if (!name){ setStatus(t('selectPresetToDelete'),'err'); return; }
-  if (!confirm(t('confirmDelete', name))) return;
-  const presets = loadPresets(); delete presets[name]; savePresets(presets);
-  refreshPresetDropdown(); setStatus(t('presetDeleted', name));
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z')) && editModal.classList.contains('hidden')) {
+    e.preventDefault(); redoBtn.click();
+  }
 });
 
-/* ==== INIT ==== */
-try { const saved = localStorage.getItem('bip-lang'); if (saved === 'bn' || saved === 'en') currentLang = saved; } catch(e){}
-refreshPresetDropdown();
-applyLang(currentLang);
-render();
+// ============ PWA ============
+const manifest = {
+  name: "ReadyChobi", short_name: "ReadyChobi",
+  description: "Passport photos, ready in seconds.",
+  start_url: ".", display: "standalone",
+  background_color: "#f8fafc", theme_color: "#2563eb",
+  icons: [{ src: "https://img.icons8.com/3d-fluency/94/stack-of-photos.png", sizes: "94x94", type: "image/png" }]
+};
+const manifestUrl = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/json' }));
+document.getElementById('pwaManifest').href = manifestUrl;
+
+// ============ INIT ============
+updateBgModeUI();
+updateAiStatus();
 updateButtons();
 
 const startPreload = () => {
   if (currentPillState === 'ready' || currentPillState === 'loading') return;
-  setPill('loading');
-  showAiOverlay(0);
+  currentPillState = 'loading'; updateAiStatus();
   ensureAiLoaded()
-    .then(() => {
-      setPill('ready');
-      hideAiOverlay();
-      modelBytesByKey.clear();
-    })
-    .catch(() => {
-      setPill('fail');
-      hideAiOverlay();
-    });
+    .then(() => { currentPillState = 'ready'; updateAiStatus(); modelBytesByKey.clear(); })
+    .catch(() => { currentPillState = 'fail'; updateAiStatus(); });
 };
 if ('requestIdleCallback' in window) requestIdleCallback(startPreload, { timeout: 2000 });
 else setTimeout(startPreload, 1200);
 </script>
-
 </body>
 </html>
